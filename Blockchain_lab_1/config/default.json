@@ -1,0 +1,14 @@
+{
+  "chain_id": "lab01",
+  "seed": 42,
+  "n": 10,
+  "f": 3,
+  "heights": 5,
+  "delta": 20,
+  "base_timeout": 200,
+  "timeout_inc": 100,
+  "max_txs_per_block": 10,
+  "accounts": ["Alice", "Bob", "Carol"],
+  "txs_per_account": 5,
+  "t_end": 100000
+}

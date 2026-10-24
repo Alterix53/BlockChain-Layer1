@@ -1,0 +1,13 @@
+Tailieu/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+logs/
+*.log
+
+# Archives
+*.zip
