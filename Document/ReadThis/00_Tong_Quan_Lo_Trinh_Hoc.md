@@ -8,7 +8,7 @@ Tài liệu này được biên soạn bám sát theo yêu cầu đề bài **LA
 
 ## 🗺️ Bản Đồ Lộ Trình Học Tập (Từ Cơ Bản Đến Nâng Cao)
 
-Hệ thống tài liệu được chia thành **5 chuyên đề chuyên sâu** sắp xếp theo tiến trình nhận thức:
+Hệ thống tài liệu được chia thành **6 chuyên đề chuyên sâu** sắp xếp theo tiến trình nhận thức:
 
 ```
 [Chuyên đề 01: Kiến thức nền tảng Layer 1 & BFT]
@@ -24,6 +24,9 @@ Hệ thống tài liệu được chia thành **5 chuyên đề chuyên sâu** s
                       │
                       ▼
 [Chuyên đề 05: Mô phỏng mạng DES & 8 Kịch bản kiểm thử (T1 -> T8)]
+                      │
+                      ▼
+[Chuyên đề 06: RPC Stack, Indexing Pipeline & Nghiên cứu Kiến trúc Client]
 ```
 
 ---
@@ -37,6 +40,7 @@ Hệ thống tài liệu được chia thành **5 chuyên đề chuyên sâu** s
 | **03** | [03_Kien_Truc_Node_Va_Mo_Hinh_Thuc_Thi.md](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Document/ReadThis/03_Kien_Truc_Node_Va_Mo_Hinh_Thuc_Thi.md) | 5 tầng kiến trúc Node, Pipeline xử lý khối, Máy trạng thái Key-Value Store, Nonce chống replay, Cơ chế Copy-on-Write, Phân loại Node (Full/Archival/Light), Đồng bộ trạng thái (Sync modes). | `src/execution.py`, `src/common.py` |
 | **04** | [04_Thuat_Toan_Dong_Thuan_Tendermint_BFT.md](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Document/ReadThis/04_Thuat_Toan_Dong_Thuan_Tendermint_BFT.md) | Vòng đời Height/Round/Step (Propose -> Prevote -> Precommit -> Finalize), Quorum $Q = 2f + 1$, Phân tích chi tiết 7 Quy tắc Ký phiếu và Khóa Block (Locking Rules 1-7), Timeout động, Slashing & Equivocation. | `src/node.py` |
 | **05** | [05_Mo_Phong_Mang_Va_Kiem_Thu_He_Thong.md](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Document/ReadThis/05_Mo_Phong_Mang_Va_Kiem_Thu_He_Thong.md) | Mô phỏng biến cố rời rạc (Discrete Event Simulation - DES), Virtual Clock, Priority Queue, Tính tất định (Byte-identical logs), Phân tích toàn diện 8 kịch bản kiểm thử T1-T8, Hướng dẫn chạy & debug. | `src/sim.py`, `src/main.py` |
+| **06** | [06_RPC_Stack_Indexing_Va_Kien_Truc_Client.md](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Document/ReadThis/06_RPC_Stack_Indexing_Va_Kien_Truc_Client.md) | Kiến trúc RPC Gateway, Pipeline Lập chỉ mục Indexing (ETL / Subgraphs), An ninh API Edge, So sánh Geth vs Erigon vs Nethermind, Design Trade-offs, End-to-End Dataflow & SLOs (bám sát Slide 9, 11, 15-21). | `Document/Lab01-presentation.pdf` |
 
 ---
 
