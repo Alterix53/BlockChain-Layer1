@@ -87,6 +87,13 @@ class Vote:
     sig: bytes         # Chữ ký Ed25519 trên vote body
 ```
 
+### 2.5. Mở Rộng Bài Giảng: Biên Lai Giao Dịch (`Receipts`) & `receipts_root` (Slide trang 9)
+Trong mô hình tinh gọn của Lab 01, Header chỉ cam kết `tx_root` và `state_hash`. Tuy nhiên, trong lý thuyết thiết kế blockchain thực thụ (Ethereum/Cosmos):
+- Header cam kết thêm: `receipts_root` (gốc Merkle của toàn bộ biên lai các giao dịch).
+- Mỗi Receipt lưu trữ: Trạng thái thành công/thất bại, số gas tích lũy đã dùng, và các sự kiện (`Event logs`) được phát ra.
+- **Nguyên lý quan trọng**: Ứng dụng dApp và ví phía người dùng truy vấn **Receipts** để kiểm tra kết quả giao dịch chứ không đọc các biến đổi trạng thái thô (*"Applications read receipts, not raw diffs"*).
+👉 *Xem phân tích chuyên sâu tại [Chuyên Đề 06 - Mục 1](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Document/ReadThis/06_RPC_Stack_Indexing_Va_Kien_Truc_Client.md#1-cau-truc-khoi-mo-rong--bien-lai-giao-dich-block-structure--receipts).*
+
 ---
 
 ## 3. Máy Trạng Thái (State Machine) Trong [execution.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/execution.py)
@@ -187,6 +194,8 @@ Theo bài giảng lý thuyết (Slide trang 3, 4, 10, 12):
 | **Light Client** | Chỉ lưu Block Header | Dựa vào Merkle Proof | Ứng dụng ví trên điện thoại (Metamask di động) |
 | **Stateless Client**| Không lưu trạng thái | Xác thực qua nhân chứng (Witness) | Đề xuất nghiên cứu mở rộng Ethereum (Verkle Trees) |
 
+> 👉 *Xem so sánh chuyên sâu về kiến trúc, cấu trúc Witness và bài toán đánh đổi chi phí giữa Light Client vs Stateless Client (Slide trang 11) tại [Chuyên Đề 06 - Mục 2](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Document/ReadThis/06_RPC_Stack_Indexing_Va_Kien_Truc_Client.md#2-so-sanh-chuyen-sau-light-client-vs-stateless-client).*
+
 ### 4.2. Các Chế độ Đồng Bộ Dữ Liệu (Sync Modes)
 Khi một node mới tham gia vào mạng hoặc khởi động lại:
 1. **Full Sync (Replay all)**: Tải toàn bộ block từ block số 1 đến nay, chạy lại từng giao dịch. Mức độ an toàn cao nhất (Self-verified), nhưng tốc độ khởi động chậm nhất.
@@ -207,3 +216,16 @@ Trong các mạng dùng luật chuỗi dài nhất (PoW Nakamoto Consensus), khi
 Để chống mất dữ liệu khi mất điện hoặc máy chủ bị tắt đột ngột:
 - Node ghi lại dự định và các lá phiếu đã ký vào **Nhật ký ghi trước (Write-Ahead Log - WAL)** trên ổ cứng trước khi gửi ra mạng.
 - Khi khởi động lại, node đọc lại WAL để phục hồi chính xác trạng thái và lá phiếu đã ký, ngăn ngừa việc ký hai lần (Double Signing) vi phạm luật đồng thuận (Slide trang 14).
+
+---
+
+## 6. Mở Rộng: Tầng RPC, Indexing & Luồng Dữ Liệu Trọn Vẹn
+Để tìm hiểu các tầng kiến trúc nâng cao phục vụ ứng dụng Web3 bao gồm:
+- **Tầng RPC & WebSocket Gateway** phân tách kênh Public Read / Private Write (Slide trang 15)
+- **Pipeline Lập chỉ mục & Bộ đệm (ETL / Subgraph Builders)** (Slide trang 16)
+- **Bảo mật tại tầng biên API** chống DoS và Heavy Queries (Slide trang 17)
+- **Nghiên cứu ca các phần mềm Ethereum Client (Geth vs Erigon vs Nethermind)** (Slide trang 18)
+- **Ma trận 5 chiều đánh đổi kiến trúc (Design Trade-offs)** (Slide trang 19)
+- **Luồng dữ liệu trọn vẹn (End-to-End Dataflow)** và quản trị ngân sách độ trễ (Slide trang 20)
+
+👉 Vui lòng đọc tiếp tài liệu chuyên sâu: **[Chuyên Đề 06: RPC Stack, Indexing Pipeline & Nghiên Cứu Kiến Trúc Client](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Document/ReadThis/06_RPC_Stack_Indexing_Va_Kien_Truc_Client.md)**.
