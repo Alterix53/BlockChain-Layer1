@@ -1,6 +1,6 @@
 # Chuyên Đề 03: Kiến Trúc Node & Mô Hình Thực Thi Chuyển Trạng Thái
 
-Tài liệu này phân tích cấu trúc bên trong của một Blockchain Node, vòng đời dữ liệu và mô hình thực thi trạng thái tất định được cài đặt trong [execution.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/execution.py).
+Tài liệu này phân tích cấu trúc bên trong của một Blockchain Node, vòng đời dữ liệu và mô hình thực thi trạng thái tất định được cài đặt trong [execution.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/execution.py).
 
 ---
 
@@ -33,7 +33,7 @@ flowchart TD
 
 ## 2. Các Cấu Trúc Dữ Liệu Cốt Lõi
 
-Trong [common.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/common.py#L63-L110), các thực thể được đóng gói bằng `@dataclass(frozen=True)` để đảm bảo tính bất biến (không thể bị sửa đổi ngoài ý muốn sau khi khởi tạo):
+Trong [common.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/common.py#L63-L110), các thực thể được đóng gói bằng `@dataclass(frozen=True)` để đảm bảo tính bất biến (không thể bị sửa đổi ngoài ý muốn sau khi khởi tạo):
 
 ### 2.1. Transaction (`Tx`)
 Giao dịch thể hiện yêu cầu ghi/sửa dữ liệu của người dùng:
@@ -89,7 +89,7 @@ class Vote:
 
 ---
 
-## 3. Máy Trạng Thái (State Machine) Trong [execution.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/execution.py)
+## 3. Máy Trạng Thái (State Machine) Trong [execution.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/execution.py)
 
 ### 3.1. Cấu trúc Lớp `State`
 Trạng thái của blockchain được mô hình hóa thành một kho lưu trữ Key-Value kết hợp quản lý Nonce:
@@ -110,7 +110,7 @@ def hash(self) -> bytes:
 ---
 
 ### 3.2. Cơ chế Thực Thi Giao Dịch: Hàm `apply_tx`
-Hàm [apply_tx](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/execution.py#L19-L32) thực hiện 4 bước kiểm tra an ninh nghiêm ngặt trước khi cập nhật dữ liệu:
+Hàm [apply_tx](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/execution.py#L19-L32) thực hiện 4 bước kiểm tra an ninh nghiêm ngặt trước khi cập nhật dữ liệu:
 
 ```mermaid
 flowchart TD

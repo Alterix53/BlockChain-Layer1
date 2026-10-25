@@ -1,6 +1,6 @@
 # Chuyên Đề 04: Thuật Toán Đồng Thuận Tendermint BFT & 7 Quy Tắc Vàng
 
-Tài liệu này giải thích chi tiết động cơ đồng thuận **Tendermint BFT** - trái tim của dự án, được hiện thực hóa trong [node.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py).
+Tài liệu này giải thích chi tiết động cơ đồng thuận **Tendermint BFT** - trái tim của dự án, được hiện thực hóa trong [node.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py).
 
 ---
 
@@ -21,7 +21,7 @@ Height 3: [Round 0: Thành công] ───────────────�
 
 ### 1.2. Thuật Toán Chọn Leader (Proposer Selection)
 Trong mỗi `(height, round)`, chỉ có duy nhất **một validator** được chỉ định làm Leader (Proposer) để đề xuất block.
-Công thức trong [node.py: dòng 31-33](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py#L31-L33):
+Công thức trong [node.py: dòng 31-33](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py#L31-L33):
 ```python
 def proposer(self, h, r):
     v = self.ctx["vals"]
@@ -90,14 +90,14 @@ stateDiagram-v2
 
 ## 3. Phân Tích Chuyên Sâu 7 Quy Tắc Ký Phiếu & Khóa Block (Locking Rules)
 
-Đề bài Lab 01 đặt ra **7 quy tắc bắt buộc** để đảm bảo tính Safety và Liveness. Dưới đây là đối chiếu trực tiếp giữa lý thuyết và từng dòng mã nguồn trong [node.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py):
+Đề bài Lab 01 đặt ra **7 quy tắc bắt buộc** để đảm bảo tính Safety và Liveness. Dưới đây là đối chiếu trực tiếp giữa lý thuyết và từng dòng mã nguồn trong [node.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py):
 
 ---
 
 ### Quy tắc 1 & 2: Ký tối đa 1 phiếu PREVOTE và 1 phiếu PRECOMMIT cho mỗi `(height, round)`
 > **Mục đích**: Chống gian lận hai mặt (Equivocation) từ validator. Một validator không bao giờ được phép ký 2 lá phiếu khác nhau ở cùng một vòng.
 
-- **Mã nguồn trong [node.py: dòng 152-156](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py#L152-L156)**:
+- **Mã nguồn trong [node.py: dòng 152-156](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py#L152-L156)**:
 ```python
 def cast(self, kind, target):
     key = (self.height, self.round, kind)
@@ -112,7 +112,7 @@ def cast(self, kind, target):
 ### Quy tắc 3: Chỉ chấp nhận và Prevote cho block hợp lệ toàn diện
 > **Mục đích**: Đảm bảo không bao giờ đưa dữ liệu rác, sai quy tắc chuyển trạng thái hoặc block của kẻ mạo danh vào chuỗi.
 
-- **Mã nguồn trong [node.py: dòng 136-149](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py#L136-L149)**:
+- **Mã nguồn trong [node.py: dòng 136-149](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py#L136-L149)**:
 ```python
 def _check(self, b):
     hd = b.header
@@ -136,7 +136,7 @@ Node kiểm tra đầy đủ 5 tiêu chí:
 ### Quy tắc 4: Khóa Block khi quan sát thấy Quorum PREVOTE cho non-NIL block
 > **Mục đích**: Bảo vệ Safety. Khi đã có đa số $\ge 2f + 1$ validator đồng ý với block $t$ ở bước Prevote, validator phải "khóa" lòng tin của mình vào block $t$ để không bị dụ dỗ bỏ phiếu cho block khác ở các vòng sau.
 
-- **Mã nguồn trong [node.py: dòng 177-183](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py#L177-L183)**:
+- **Mã nguồn trong [node.py: dòng 177-183](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py#L177-L183)**:
 ```python
 for t, c in sorted(Counter(v.block_hash for v in pv.values()).items()):
     if c >= self.Q:
@@ -151,7 +151,7 @@ for t, c in sorted(Counter(v.block_hash for v in pv.values()).items()):
 > **Mục đích**: Bảo vệ Liveness. Giả sử node đang bị khóa ở block $B$ tại round 0. Sang round 1, một Proposer mới đề xuất block $B'$. Khi nào node được phép bỏ phiếu Prevote cho block $B'$?
 
 - **Điều kiện**: Node chỉ được Prevote cho $B'$ nếu nó quan sát thấy một **Quorum $\ge 2f + 1$ phiếu PREVOTE hợp lệ cho $B'$ ở một round muộn hơn** round mà nó đang bị khóa!
-- **Mã nguồn trong [node.py: dòng 171](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py#L171)**:
+- **Mã nguồn trong [node.py: dòng 171](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py#L171)**:
 ```python
 can = self.check_block(b) and (self.locked is None or self.locked[0] == bh)
 self.cast("PREVOTE", bh if can else NIL)
@@ -163,7 +163,7 @@ self.cast("PREVOTE", bh if can else NIL)
 ### Quy tắc 6: Không ký phiếu sai chain, height, round, phase hoặc domain
 > **Mục đích**: Ngăn chặn tấn công xuyên chuỗi và xuyên chiều cao.
 
-- **Mã nguồn trong [node.py: dòng 158](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py#L158)**:
+- **Mã nguồn trong [node.py: dòng 158](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py#L158)**:
 ```python
 v = Vote(*v.body(), sig=sign(self.kp, "VOTE:" + self.ctx["chain_id"], v.body()))
 ```
@@ -174,7 +174,7 @@ Chữ ký của lá phiếu gắn chặt với cấu trúc dữ liệu `[kind, h
 ### Quy tắc 7: Bỏ qua phiếu trùng lặp & Mỗi validator chỉ được đếm 1 phiếu duy nhất
 > **Mục đích**: Chống tấn công Sybil / Replay trong gom phiếu.
 
-- **Mã nguồn trong [node.py: dòng 119-124](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py#L119-L124)**:
+- **Mã nguồn trong [node.py: dòng 119-124](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py#L119-L124)**:
 ```python
 slot = self.votes.setdefault((v.height, v.round, v.kind), {})
 if v.voter in slot:  # Nếu validator này đã có phiếu trong slot
@@ -191,7 +191,7 @@ slot[v.voter] = v
 
 Khi mạng bị nghẽn hoặc Proposer bị sập nguồn, nếu validator đứng đợi mãi mãi, hệ thống sẽ bị treo (mất Liveness).
 
-Hàm tính thời gian timeout trong [node.py: dòng 59-60](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/node.py#L59-L60):
+Hàm tính thời gian timeout trong [node.py: dòng 59-60](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py#L59-L60):
 $$\text{timeout\_len}(r) = \text{base\_timeout} + r \times \text{timeout\_inc}$$
 
 - Với cấu hình mẫu: `base_timeout = 200`, `timeout_inc = 100`:

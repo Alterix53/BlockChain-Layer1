@@ -2,7 +2,7 @@
 
 Chào mừng bạn đến với tài liệu hướng dẫn toàn diện về dự án **Blockchain Layer 1 Minimal** với thuật toán đồng thuận **Tendermint BFT**.
 
-Tài liệu này được biên soạn bám sát theo yêu cầu đề bài **LAB 01 (Khoa Công nghệ Tri thức - FIT HCMUS)** và bài giảng lý thuyết **Node Architecture, Clients, and State Synchronization**, kết nối trực tiếp lý thuyết hàn lâm với mã nguồn thực tế trong thư mục `Blockchain_lab_1/src/`.
+Tài liệu này được biên soạn bám sát theo yêu cầu đề bài **LAB 01 (Khoa Công nghệ Tri thức - FIT HCMUS)** và bài giảng lý thuyết **Node Architecture, Clients, and State Synchronization**, kết nối trực tiếp lý thuyết hàn lâm với mã nguồn thực tế trong thư mục `Workspace/src/`.
 
 ---
 
@@ -43,5 +43,5 @@ Hệ thống tài liệu được chia thành **5 chuyên đề chuyên sâu** s
 ## 🎯 Phương Pháp Học Hiệu Quả
 
 1. **Đọc theo tuần tự**: Hãy bắt đầu từ tài liệu **01** để nắm vững tư duy hệ thống và các bất biến toán học (invariants) trước khi đọc code.
-2. **Đối chiếu Code thực tế**: Mỗi tài liệu đều trích dẫn các hàm, lớp và cấu trúc dữ liệu cụ thể trong thư mục `Blockchain_lab_1/src/`. Hãy mở song song code để đọc và liên hệ.
+2. **Đối chiếu Code thực tế**: Mỗi tài liệu đều trích dẫn các hàm, lớp và cấu trúc dữ liệu cụ thể trong thư mục `Workspace/src/`. Hãy mở song song code để đọc và liên hệ.
 3. **Thực nghiệm qua Log**: Chạy mô phỏng bằng lệnh `python -m src.main` và mở file `logs/run.log` để tự mình đối chiếu từng sự kiện mạng (`SEND`, `PROPOSE`, `VOTE`, `FINALIZE`).

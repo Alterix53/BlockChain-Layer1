@@ -1,6 +1,6 @@
 # Chuyên Đề 02: Mật Mã Học, Phân Tách Miền & Mã Hóa Tất Định
 
-Tài liệu này giải thích chi tiết tầng mật mã học (`Cryptography layer`) và cơ chế đảm bảo tính tất định (`Determinism`) được hiện thực hóa trong [common.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/common.py).
+Tài liệu này giải thích chi tiết tầng mật mã học (`Cryptography layer`) và cơ chế đảm bảo tính tất định (`Determinism`) được hiện thực hóa trong [common.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/common.py).
 
 ---
 
@@ -15,7 +15,7 @@ Trong blockchain, danh tính (`identity`) của người dùng và validator đ�
 - **Kích thước nhỏ gọn**: Khóa công khai chỉ đúng **32 bytes**, chữ ký chỉ **64 bytes**.
 - **Miễn nhiễm Timing Attacks**: Quá trình tính toán không phụ thuộc vào dữ liệu đầu vào, ngăn ngừa tấn công kênh kề (side-channel attacks).
 
-### 1.2. Hiện thực trong [common.py: Lớp KeyPair](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/common.py#L42-L47)
+### 1.2. Hiện thực trong [common.py: Lớp KeyPair](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/common.py#L42-L47)
 ```python
 class KeyPair:
     def __init__(self, seed: bytes):
@@ -51,7 +51,7 @@ Mỗi loại thông điệp bắt buộc phải được gắn một tiền tố
 - **Tiêu đề khối**: `"HEADER:" + chain_id` (Ví dụ: `HEADER:lab01`)
 - **Lá phiếu đồng thuận**: `"VOTE:" + chain_id` (Ví dụ: `VOTE:lab01`)
 
-### 2.3. Hiện thực trong [common.py: Hàm sign & verify](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/common.py#L49-L60)
+### 2.3. Hiện thực trong [common.py: Hàm sign & verify](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/common.py#L49-L60)
 ```python
 def sign(kp: KeyPair, domain: str, body) -> bytes:
     # Ghép domain đã encode với body đã encode trước khi ký
@@ -85,7 +85,7 @@ Nếu dùng các thư viện thông thường:
 
 ---
 
-### 3.2. Giải phẫu hàm `encode(o)` trong [common.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/common.py#L16-L35)
+### 3.2. Giải phẫu hàm `encode(o)` trong [common.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/common.py#L16-L35)
 
 Hàm `encode()` sử dụng tiền tố 1 byte kiểu (`Type Tag`) theo sau là dữ liệu định dạng chuẩn:
 
@@ -114,7 +114,7 @@ Dù hai node chèn các cặp key-value vào dictionary theo thứ tự nào, h�
 ## 4. Hàm Băm SHA-256 & Cấu Trúc Cây Merkle
 
 ### 4.1. Hàm băm SHA-256
-Trong [common.py: dòng 37](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/common.py#L37-L38):
+Trong [common.py: dòng 37](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/common.py#L37-L38):
 ```python
 def H(data: bytes) -> bytes:
     return hashlib.sha256(data).digest()
@@ -125,7 +125,7 @@ def H(data: bytes) -> bytes:
 ---
 
 ### 4.2. Tính toán `tx_root` trong Block Header
-Trong [common.py: dòng 112](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/common.py#L112-L113):
+Trong [common.py: dòng 112](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/common.py#L112-L113):
 ```python
 def tx_root(txs) -> bytes:
     return H(encode([[t.body(), t.sig] for t in txs]))

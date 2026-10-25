@@ -1,6 +1,6 @@
 # Chuyên Đề 05: Mô Phỏng Mạng & 8 Kịch Bản Kiểm Thử Hệ Thống (T1 - T8)
 
-Tài liệu này giải thích kiến trúc bộ mô phỏng mạng **Discrete Event Simulator (DES)** trong [sim.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/sim.py), tính tất định của hệ thống trong [main.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/main.py) và hướng dẫn phân tích toàn diện **8 kịch bản kiểm thử (T1 đến T8)** theo yêu cầu đề bài Lab 01.
+Tài liệu này giải thích kiến trúc bộ mô phỏng mạng **Discrete Event Simulator (DES)** trong [sim.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/sim.py), tính tất định của hệ thống trong [main.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/main.py) và hướng dẫn phân tích toàn diện **8 kịch bản kiểm thử (T1 đến T8)** theo yêu cầu đề bài Lab 01.
 
 ---
 
@@ -11,7 +11,7 @@ Trong các bài toán mạng phân tán, nếu dùng luồng thực tế (`threa
 - Bị ảnh hưởng bởi CPU máy tính, hệ điều hành (không tất định).
 - Không thể tái lập các tình huống lỗi mạng hiếm gặp (edge cases).
 
-**Giải pháp**: Sử dụng **Discrete Event Simulation (DES)** trong [sim.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/sim.py) với 3 thành phần cốt lõi:
+**Giải pháp**: Sử dụng **Discrete Event Simulation (DES)** trong [sim.py](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/sim.py) với 3 thành phần cốt lõi:
 
 ```mermaid
 flowchart LR
@@ -52,7 +52,7 @@ flowchart LR
 Đề bài yêu cầu: **Chạy lại cùng một cấu hình phải cho ra file log giống nhau từng byte và state hash cuối cùng phải bằng nhau.**
 
 ### 2.1. Định dạng chuẩn của bản ghi log
-Mỗi biến cố trong mạng được ghi nhận theo định dạng có cấu trúc trong [sim.py: dòng 15](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/sim.py#L15):
+Mỗi biến cố trong mạng được ghi nhận theo định dạng có cấu trúc trong [sim.py: dòng 15](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/sim.py#L15):
 ```
 t={timestamp} node={tên_node} ev={sự_kiện} {các_tham_số_bổ_sung}
 ```
@@ -67,7 +67,7 @@ t=19 node=V0 ev=FINALIZE height=1 round=0 block=507c3ea9 state=d0f04c64
 ```
 
 ### 2.2. Kiểm tra tính tất định với cờ `--twice`
-Trong [main.py: dòng 56-60](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/main.py#L56-L60):
+Trong [main.py: dòng 56-60](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/main.py#L56-L60):
 ```python
 if a.twice:
     net2 = run_sim(cfg)
@@ -97,7 +97,7 @@ Dưới đây là bảng tổng hợp và phân tích chuyên sâu 8 bài test t
 
 ## 4. Kiểm Tra Tính An Toàn (Safety Check) Trong Code
 
-Hàm [check_safety(nodes)](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/src/main.py#L36-L40) được kích hoạt ngay sau khi kết thúc mô phỏng để bảo đảm không có bất kỳ fork nào:
+Hàm [check_safety(nodes)](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/main.py#L36-L40) được kích hoạt ngay sau khi kết thúc mô phỏng để bảo đảm không có bất kỳ fork nào:
 
 ```python
 def check_safety(nodes):
@@ -113,7 +113,7 @@ def check_safety(nodes):
 
 ## 5. Hướng Dẫn Thực Hành & Khai Thác Hệ Thống
 
-Mở terminal trong thư mục `Blockchain_lab_1` và thực hiện các thao tác sau:
+Mở terminal trong thư mục `Workspace` và thực hiện các thao tác sau:
 
 ### 5.1. Chạy kịch bản cơ bản
 ```powershell

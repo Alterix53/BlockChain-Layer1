@@ -85,7 +85,7 @@ Giả sử hệ thống có $n$ validator, trong đó có tối đa $f$ node là
      $$n - 2f > f \iff n > 3f \iff n \ge 3f + 1$$
 
 #### Ví dụ trực quan với cấu hình trong dự án:
-- Mở file [default.json](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Blockchain_lab_1/config/default.json):
+- Mở file [default.json](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/config/default.json):
   ```json
   "n": 10,
   "f": 3
