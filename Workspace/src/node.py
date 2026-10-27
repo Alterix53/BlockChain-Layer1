@@ -1,10 +1,19 @@
-"""Một validator: máy trạng thái Tendermint tối giản (propose/prevote/precommit/commit)."""
+"""Một validator: máy trạng thái Tendermint tối giản (propose/prevote/precommit/commit).
+
+Bản này thêm so với xương sống:
+  * Luật 5 đầy đủ (proposal mang pol_round, mở khóa khi tự thấy polka ở round sau).
+  * Proposer đề xuất lại block đã có polka.
+  * Nhảy round khi thấy f+1 validator ở round cao hơn (+ timeout cả round làm lưới an toàn).
+  * Buffer proposal/vote của height tương lai, có giới hạn bộ nhớ.
+  * Các hook nhỏ (send_proposal, make_vote, send_vote) để người khác ghi đè.
+"""
 from collections import Counter
 
 from .common import NIL, Block, Header, Vote, H, sign, tx_root, verify
 from .execution import State, apply_tx, apply_txs
 
 GENESIS = H(b"genesis")
+KINDS = ("PREVOTE", "PRECOMMIT")
 
 
 class Node:
@@ -13,13 +22,22 @@ class Node:
         self.name = ctx["vals"][idx]
         self.net = ctx["net"]
         self.Q = 2 * ctx["f"] + 1
+        self.max_ahead = ctx.get("max_ahead_h", 3)    # chỉ nhận tin tối đa 3 height phía trước
+        self.max_round = ctx.get("max_round", 1000)   # trần tuyệt đối cho round
         self.state = State()
         self.ledger = []          # block đã chốt
         self.mempool = []
         self.done = False
-        self.height = 0
+        self.height, self.round, self.step = 0, 0, "PROPOSE"
         self.signed = {}          # (h, r, kind) -> block_hash đã ký (luật 1, 2)
         self.locked = None        # (block_hash, round)
+        # dữ liệu của height hiện tại (reset ở start_height)
+        self.proposals, self.blocks, self.checked = {}, {}, {}
+        self.scheduled = set()
+        self.peer_round = {}      # voter -> round cao nhất từng thấy ở height này
+        # dữ liệu sống qua nhiều height
+        self.votes = {}           # (h, r, kind) -> {voter: Vote}; phiếu đến sớm vẫn được giữ
+        self.future = {}          # (h, r) -> Block của height tương lai
 
     # ----- tiện ích -----
     def log(self, ev, **kw):
@@ -32,6 +50,9 @@ class Node:
         v = self.ctx["vals"]
         return v[(h + r) % len(v)]
 
+    def in_window(self, h, r):
+        return self.height <= h <= self.height + self.max_ahead and 0 <= r <= self.max_round
+
     # ----- vòng đời -----
     def start(self):
         self.start_height(1)
@@ -43,10 +64,20 @@ class Node:
             return
         self.height, self.locked = h, None
         self.proposals, self.blocks, self.checked = {}, {}, {}
-        if not hasattr(self, "votes"):
-            self.votes = {}
+        # nạp proposal đến sớm TRƯỚC khi start_round để run() thấy ngay
+        for (hh, rr), fb in sorted(self.future.items()):
+            if hh == h:
+                self.proposals[(hh, rr)] = fb
+                self.blocks[fb.hash()] = fb
+        self.future = {k: v for k, v in self.future.items() if k[0] > h}
+        # dựng lại peer_round từ phiếu đã đến sớm
+        self.peer_round = {}
+        for (hh, rr, _), vs in self.votes.items():
+            if hh == h:
+                for voter in vs:
+                    self.peer_round[voter] = max(self.peer_round.get(voter, -1), rr)
         self.scheduled = set()
-        self.start_round(0)
+        self.start_round(max(0, self.skip_target()))
 
     def start_round(self, r):
         self.round, self.step = r, "PROPOSE"
@@ -54,20 +85,67 @@ class Node:
         if self.proposer(self.height, r) == self.name:
             self.propose()
         self.set_timeout("PROPOSE")
+        self.set_timeout("ROUND", 3)   # lưới an toàn: dù thiếu phiếu cũng không đứng yên mãi
         self.run()
 
     def timeout_len(self, r):
         return self.ctx["base_timeout"] + r * self.ctx["timeout_inc"]
 
-    def set_timeout(self, kind):
+    def set_timeout(self, kind, mult=1):
         key = (kind, self.height, self.round)
         if key in self.scheduled:
             return
         self.scheduled.add(key)
-        self.net.set_timeout(self.idx, self.timeout_len(self.round), key)
+        self.net.set_timeout(self.idx, mult * self.timeout_len(self.round), key)
+
+    # ----- nhảy round -----
+    def skip_target(self):
+        """Round lớn nhất mà ít nhất f+1 validator khác nhau đã đạt (-1 nếu chưa đủ)."""
+        rs = sorted(self.peer_round.values(), reverse=True)
+        f = self.ctx["f"]
+        return rs[f] if len(rs) > f else -1
+
+    def maybe_skip_round(self):
+        t = self.skip_target()
+        if t > self.round:
+            self.log("ROUND_SKIP", height=self.height, frm=self.round, to=t)
+            self.start_round(t)
+            return True
+        return False
+
+    # ----- polka -----
+    def polka(self, h, r, bh):
+        """Có >= Q prevote cho bh ở (h, r) không?"""
+        pv = self.votes.get((h, r, "PREVOTE"), {})
+        return sum(1 for v in pv.values() if v.block_hash == bh) >= self.Q
+
+    def best_polka(self):
+        """Polka ở round cao nhất (< round hiện tại) cho block mà ta có thân và hợp lệ."""
+        best = None
+        for (hh, rr, kind), vs in sorted(self.votes.items()):   # round tăng dần
+            if hh != self.height or kind != "PREVOTE" or rr >= self.round:
+                continue
+            for t, c in sorted(Counter(v.block_hash for v in vs.values()).items()):
+                if t != NIL and c >= self.Q and t in self.blocks and self.check_block(self.blocks[t]):
+                    best = (t, rr)
+        return best
 
     # ----- đề xuất block -----
     def propose(self):
+        pol = self.best_polka()
+        if pol:
+            t, pr = pol
+            old = self.blocks[t]
+            blk = self.seal(old.txs, old.header.state_hash, pr)   # giữ nguyên nội dung
+            self.log("REPROPOSE", height=self.height, round=self.round,
+                     pol_round=pr, block=t.hex()[:8])
+        else:
+            blk = self.make_block()
+        self.log("PROPOSE", height=self.height, round=self.round,
+                 pol_round=blk.header.pol_round, txs=len(blk.txs))
+        self.send_proposal(blk)
+
+    def make_block(self):
         chosen, s = [], self.state.copy()
         for tx in sorted(self.mempool, key=lambda t: (t.sender, t.nonce)):
             if len(chosen) >= self.ctx["max_txs"]:
@@ -76,12 +154,24 @@ class Node:
             if apply_tx(trial, tx, self.ctx["chain_id"], self.ctx["acct_pks"]) is None:
                 s = trial
                 chosen.append(tx)
-        hd = Header(self.height, self.round, self.last_hash(), s.hash(),
-                    tx_root(chosen), self.name)
+        return self.seal(chosen, s.hash(), -1)
+
+    def seal(self, txs, state_hash, pol_round):
+        hd = Header(self.height, self.round, pol_round, self.last_hash(),
+                    state_hash, tx_root(txs), self.name)
         hd = Header(*hd.body(), sig=sign(self.kp, "HEADER:" + self.ctx["chain_id"], hd.body()))
-        blk = Block(hd, tuple(chosen))
-        self.log("PROPOSE", height=self.height, round=self.round, txs=len(chosen))
+        return Block(hd, tuple(txs))
+
+    # ----- hook gửi tin (người khác ghi đè để tạo node lỗi) -----
+    def send_proposal(self, blk):
         self.net.broadcast(self.idx, ("PROPOSAL", blk))
+
+    def make_vote(self, kind, target):
+        v = Vote(kind, self.height, self.round, target, self.name)
+        return Vote(*v.body(), sig=sign(self.kp, "VOTE:" + self.ctx["chain_id"], v.body()))
+
+    def send_vote(self, v):
+        self.net.broadcast(self.idx, ("VOTE", v))
 
     # ----- nhận thông điệp -----
     def on_message(self, msg):
@@ -92,36 +182,54 @@ class Node:
             self.on_proposal(payload)
         elif kind == "VOTE":
             self.on_vote(payload)
-        self.run()
+        if not self.maybe_skip_round():   # nếu nhảy, start_round đã tự gọi run()
+            self.run()
+
+    def keep_first(self, book, b):
+        """Giữ proposal đầu tiên của mỗi (height, round); bản thứ hai khác nội dung = equivocation."""
+        key = (b.header.height, b.header.round)
+        old = book.get(key)
+        if old is None:
+            book[key] = b
+            return True
+        if old.hash() != b.hash():
+            self.log("EQUIVOCATION", proposer=b.header.proposer,
+                     height=key[0], round=key[1])
+        return False
 
     def on_proposal(self, b):
         hd = b.header
-        if hd.height < self.height:
+        if not self.in_window(hd.height, hd.round):      # cũ quá, hoặc xa quá
             return
         pk = self.ctx["vpks"].get(hd.proposer)
         if pk is None or not verify(pk, "HEADER:" + self.ctx["chain_id"], hd.body(), hd.sig):
             return self.log("REJECT", reason="bad_header_sig", height=hd.height)
         if hd.proposer != self.proposer(hd.height, hd.round):
             return self.log("REJECT", reason="wrong_proposer", height=hd.height)
+        if not (-1 <= hd.pol_round < hd.round):
+            return self.log("REJECT", reason="bad_pol_round", height=hd.height)
+        if hd.tx_root != tx_root(b.txs):                 # chặn từ cổng: body không khớp header
+            return self.log("REJECT", reason="bad_tx_root", height=hd.height)
         if hd.height == self.height:
-            self.proposals[(hd.height, hd.round)] = b
-            self.blocks[b.hash()] = b
-        else:  # proposal của height tương lai: bỏ qua trong bản tối thiểu (TODO: buffer)
-            self.future = getattr(self, "future", [])
-            self.future.append(b)
+            if self.keep_first(self.proposals, b):
+                self.blocks[b.hash()] = b
+        else:
+            self.keep_first(self.future, b)
 
     def on_vote(self, v):
+        if v.kind not in KINDS or not self.in_window(v.height, v.round):
+            return
         pk = self.ctx["vpks"].get(v.voter)
         if pk is None or not verify(pk, "VOTE:" + self.ctx["chain_id"], v.body(), v.sig):
             return self.log("REJECT", reason="bad_vote_sig", height=v.height)
-        if v.height < self.height:
-            return
         slot = self.votes.setdefault((v.height, v.round, v.kind), {})
         if v.voter in slot:  # luật 7: chỉ đếm 1 phiếu
             if slot[v.voter].block_hash != v.block_hash:
                 self.log("EQUIVOCATION", voter=v.voter, height=v.height, round=v.round)
             return
         slot[v.voter] = v
+        if v.height == self.height:
+            self.peer_round[v.voter] = max(self.peer_round.get(v.voter, -1), v.round)
 
     # ----- kiểm tra block (luật 3) -----
     def check_block(self, b):
@@ -148,17 +256,34 @@ class Node:
             return False, "bad_state_hash"
         return True, ""
 
+    # ----- luật prevote (luật 3, 4, 5) -----
+    def prevote_target(self, b):
+        """Trả về hash block, NIL, hoặc None (= chưa đủ bằng chứng, chờ thêm)."""
+        hd, bh = b.header, b.hash()
+        if not self.check_block(b):
+            return NIL
+        if self.locked is not None and self.locked[0] == bh:
+            return bh                                    # đúng block đang khóa
+        if hd.pol_round < 0:                             # block mới
+            return bh if self.locked is None else NIL
+        # đề xuất lại: phải TỰ thấy polka ở pol_round (không tin lời proposer)
+        if not self.polka(hd.height, hd.pol_round, bh):
+            return None
+        # luật 5: đang khóa block khác thì chỉ đổi khi polka ở round SAU round khóa
+        if self.locked is None or self.locked[1] < hd.pol_round:
+            return bh
+        return NIL
+
     # ----- ký phiếu (luật 1, 2, 6) -----
     def cast(self, kind, target):
         key = (self.height, self.round, kind)
         if key in self.signed:
             return
         self.signed[key] = target
-        v = Vote(kind, self.height, self.round, target, self.name)
-        v = Vote(*v.body(), sig=sign(self.kp, "VOTE:" + self.ctx["chain_id"], v.body()))
+        v = self.make_vote(kind, target)
         self.step = kind
         self.log("VOTE", kind=kind, height=v.height, round=v.round, block=target.hex()[:8] or "NIL")
-        self.net.broadcast(self.idx, ("VOTE", v))
+        self.send_vote(v)
 
     # ----- các quy tắc chuyển bước -----
     def run(self):
@@ -167,10 +292,11 @@ class Node:
             if self.step == "PROPOSE":
                 b = self.proposals.get((h, r))
                 if b is not None:
-                    bh = b.hash()
-                    can = self.check_block(b) and (self.locked is None or self.locked[0] == bh)
-                    self.cast("PREVOTE", bh if can else NIL)
-                    continue
+                    t = self.prevote_target(b)
+                    if t is not None:
+                        self.cast("PREVOTE", t)
+                        continue
+                    # t is None: chờ polka; timeout PROPOSE sẽ ép NIL nếu không đến
             if self.step == "PREVOTE":
                 pv = self.votes.get((h, r, "PREVOTE"), {})
                 done = False
@@ -180,6 +306,7 @@ class Node:
                             self.cast("PRECOMMIT", NIL); done = True
                         elif t in self.blocks and self.check_block(self.blocks[t]):
                             self.locked = (t, r)  # luật 4
+                            self.log("LOCK", height=h, round=r, block=t.hex()[:8])
                             self.cast("PRECOMMIT", t); done = True
                         break
                 if done:
@@ -206,7 +333,7 @@ class Node:
             self.cast("PREVOTE", NIL)
         elif kind == "PREVOTE" and self.step == "PREVOTE":
             self.cast("PRECOMMIT", NIL)
-        elif kind == "PRECOMMIT":
+        elif kind in ("PRECOMMIT", "ROUND"):
             return self.start_round(r + 1)
         self.run()
 
@@ -217,12 +344,9 @@ class Node:
         self.ledger.append(b)
         used = {(t.sender, t.nonce) for t in b.txs}
         self.mempool = [t for t in self.mempool if (t.sender, t.nonce) not in used]
-        self.log("FINALIZE", height=b.header.height, round=b.header.round,
+        h = b.header.height
+        self.log("FINALIZE", height=h, round=b.header.round,
                  block=b.hash().hex()[:8], state=s.hash().hex()[:8])
-        self.votes = {k: v for k, v in self.votes.items() if k[0] > b.header.height}
-        self.start_height(b.header.height + 1)
-        for fb in getattr(self, "future", []):  # xử lý proposal đến sớm
-            if fb.header.height == self.height:
-                self.on_proposal(fb)
-        self.future = [x for x in getattr(self, "future", []) if x.header.height > self.height]
-        self.run()
+        self.votes = {k: v for k, v in self.votes.items() if k[0] > h}
+        self.future = {k: v for k, v in self.future.items() if k[0] > h}
+        self.start_height(h + 1)   # nạp future và gọi run() bên trong
