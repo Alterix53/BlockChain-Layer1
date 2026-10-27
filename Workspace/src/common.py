@@ -67,6 +67,11 @@ class Tx:
     value: str
     sig: bytes = b""
 
+    @property
+    def height(self) -> int:
+        """Hỗ trợ tương thích với bộ logger mạng của sim.py"""
+        return 0
+
     def body(self):
         return [self.sender, self.nonce, self.key, self.value]
 
@@ -96,7 +101,6 @@ class Block:
     def hash(self) -> bytes:
         # "Block id": chỉ băm phần NỘI DUNG. Không băm round, pol_round, proposer,
         # để cùng một nội dung đề xuất lại ở round khác vẫn ra cùng hash.
-        # Chữ ký header (header.body()) vẫn phủ cả round/pol_round/proposer.
         h = self.header
         return H(encode([h.height, h.parent, h.state_hash, h.tx_root]))
 
@@ -116,3 +120,26 @@ class Vote:
 
 def tx_root(txs) -> bytes:
     return H(encode([[t.body(), t.sig] for t in txs]))
+
+
+@dataclass(frozen=True)
+class CommitCertificate:
+    height: int
+    round: int
+    block_hash: bytes
+    signatures: dict  # voter (str) -> signature (bytes)
+
+
+@dataclass(frozen=True)
+class SyncReq:
+    requester: str
+    from_height: int
+    to_height: int
+    height: int = 0  # Hỗ trợ log tương thích trong sim.py
+
+
+@dataclass(frozen=True)
+class SyncResp:
+    responder: str
+    chain_data: tuple  # Tuple chứa các cặp (Block, CommitCertificate)
+    height: int = 0

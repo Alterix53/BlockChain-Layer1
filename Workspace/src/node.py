@@ -1,5 +1,5 @@
-"""Một validator: máy trạng thái Tendermint tối giản (propose/prevote/precommit/commit).
-
+"""Một validator: máy trạng thái Tendermint tối giản (propose/prevote/precommit/commit) hoàn chỉnh kết hợp Lõi đồng thuận (Phần B) và Tầng dữ liệu/Đồng bộ (Phần D)."""
+"""
 Bản này thêm so với xương sống:
   * Luật 5 đầy đủ (proposal mang pol_round, mở khóa khi tự thấy polka ở round sau).
   * Proposer đề xuất lại block đã có polka.
@@ -9,7 +9,20 @@ Bản này thêm so với xương sống:
 """
 from collections import Counter
 
-from .common import NIL, Block, Header, Vote, H, sign, tx_root, verify
+from .common import (
+    NIL,
+    Block,
+    CommitCertificate,
+    Header,
+    SyncReq,
+    SyncResp,
+    Vote,
+    H,
+    encode,
+    sign,
+    tx_root,
+    verify,
+)
 from .execution import State, apply_tx, apply_txs
 
 GENESIS = H(b"genesis")
@@ -25,19 +38,23 @@ class Node:
         self.max_ahead = ctx.get("max_ahead_h", 3)    # chỉ nhận tin tối đa 3 height phía trước
         self.max_round = ctx.get("max_round", 1000)   # trần tuyệt đối cho round
         self.state = State()
-        self.ledger = []          # block đã chốt
-        self.mempool = []
+        self.ledger = []              # Danh sách block đã chốt
+        self.certificates = {}        # height -> CommitCertificate (Phần D)
+        self.mempool = []             # Hàng đợi giao dịch chờ
+        self.seen_tx_hashes = set()   # Khử trùng lặp mempool trong O(1) (Phần D)
         self.done = False
         self.height, self.round, self.step = 0, 0, "PROPOSE"
-        self.signed = {}          # (h, r, kind) -> block_hash đã ký (luật 1, 2)
-        self.locked = None        # (block_hash, round)
-        # dữ liệu của height hiện tại (reset ở start_height)
+        self.signed = {}              # (h, r, kind) -> block_hash đã ký (luật 1, 2)
+        self.locked = None            # (block_hash, round)
+
+        # Dữ liệu của height hiện tại (reset ở start_height)
         self.proposals, self.blocks, self.checked = {}, {}, {}
         self.scheduled = set()
-        self.peer_round = {}      # voter -> round cao nhất từng thấy ở height này
-        # dữ liệu sống qua nhiều height
-        self.votes = {}           # (h, r, kind) -> {voter: Vote}; phiếu đến sớm vẫn được giữ
-        self.future = {}          # (h, r) -> Block của height tương lai
+        self.peer_round = {}          # voter -> round cao nhất từng thấy ở height này
+
+        # Dữ liệu sống qua nhiều height
+        self.votes = {}               # (h, r, kind) -> {voter: Vote}
+        self.future = {}              # (h, r) -> Block của height tương lai
 
     # ----- tiện ích -----
     def log(self, ev, **kw):
@@ -64,18 +81,21 @@ class Node:
             return
         self.height, self.locked = h, None
         self.proposals, self.blocks, self.checked = {}, {}, {}
-        # nạp proposal đến sớm TRƯỚC khi start_round để run() thấy ngay
+
+        # Nạp proposal đến sớm TRƯỚC khi start_round để run() thấy ngay
         for (hh, rr), fb in sorted(self.future.items()):
             if hh == h:
                 self.proposals[(hh, rr)] = fb
                 self.blocks[fb.hash()] = fb
         self.future = {k: v for k, v in self.future.items() if k[0] > h}
-        # dựng lại peer_round từ phiếu đã đến sớm
+
+        # Dựng lại peer_round từ phiếu đã đến sớm
         self.peer_round = {}
         for (hh, rr, _), vs in self.votes.items():
             if hh == h:
                 for voter in vs:
                     self.peer_round[voter] = max(self.peer_round.get(voter, -1), rr)
+
         self.scheduled = set()
         self.start_round(max(0, self.skip_target()))
 
@@ -182,11 +202,90 @@ class Node:
             self.on_proposal(payload)
         elif kind == "VOTE":
             self.on_vote(payload)
-        if not self.maybe_skip_round():   # nếu nhảy, start_round đã tự gọi run()
+        elif kind == "TX":
+            self.on_tx(payload)
+        elif kind == "SYNC_REQ":
+            self.on_sync_request(payload)
+        elif kind == "SYNC_RESP":
+            self.on_sync_response(payload)
+
+        if not self.maybe_skip_round():
             self.run()
 
+    # ----- Phần D: Mempool Gossip & Catch-up Sync -----
+    def on_tx(self, tx):
+        tx_hash = H(encode(tx.body()))
+        if tx_hash in self.seen_tx_hashes:
+            return
+
+        pk = self.ctx["acct_pks"].get(tx.sender)
+        if pk is None or not verify(pk, "TX:" + self.ctx["chain_id"], tx.body(), tx.sig):
+            return
+        if not tx.key.startswith(tx.sender + "/"):
+            return
+
+        self.seen_tx_hashes.add(tx_hash)
+        self.mempool.append(tx)
+        self.log("TX_RECEIVED", sender=tx.sender, nonce=tx.nonce)
+        self.net.broadcast(self.idx, ("TX", tx))
+
+    def on_sync_request(self, req):
+        chain_data = []
+        for h in range(req.from_height, req.to_height + 1):
+            if h <= len(self.ledger):
+                blk = self.ledger[h - 1]
+                cert = self.certificates.get(h)
+                if cert is not None:
+                    chain_data.append((blk, cert))
+        if chain_data:
+            resp = SyncResp(responder=self.name, chain_data=tuple(chain_data))
+            for dst_idx, node in enumerate(self.net.nodes):
+                if node.name == req.requester:
+                    self.net.push(self.net.now + 1, "MSG", dst_idx, ("SYNC_RESP", resp))
+                    break
+
+    def on_sync_response(self, resp):
+        for blk, cert in resp.chain_data:
+            h = blk.header.height
+            if h != self.height:
+                continue
+
+            if cert.height != h or cert.block_hash != blk.hash():
+                return self.log("REJECT_SYNC", reason="cert_mismatch", height=h)
+
+            valid_signers = set(self.ctx["vals"])
+            unique_voters = set(cert.signatures.keys())
+            if not unique_voters.issubset(valid_signers) or len(unique_voters) < self.Q:
+                return self.log("REJECT_SYNC", reason="insufficient_cert_sigs", height=h)
+
+            vote_body = Vote("PRECOMMIT", cert.height, cert.round, cert.block_hash, "").body()[:4]
+            sig_ok = True
+            for voter, sig in cert.signatures.items():
+                v_body = vote_body + [voter]
+                pk = self.ctx["vpks"].get(voter)
+                if pk is None or not verify(pk, "VOTE:" + self.ctx["chain_id"], v_body, sig):
+                    sig_ok = False
+                    break
+            if not sig_ok:
+                return self.log("REJECT_SYNC", reason="invalid_cert_sig", height=h)
+
+            if blk.header.parent != self.last_hash():
+                return self.log("REJECT_SYNC", reason="bad_parent_hash", height=h)
+
+            new_s, err = apply_txs(self.state, blk.txs, self.ctx["chain_id"], self.ctx["acct_pks"])
+            if err or new_s.hash() != blk.header.state_hash:
+                return self.log("REJECT_SYNC", reason="bad_state_execution", height=h)
+
+            self.state = new_s
+            self.ledger.append(blk)
+            self.certificates[h] = cert
+            for t in blk.txs:
+                self.seen_tx_hashes.add(H(encode(t.body())))
+            self.log("SYNC_CATCHUP_SUCCESS", height=h, block=blk.hash().hex()[:8])
+            self.start_height(h + 1)
+
+    # ----- thẩm định thông điệp -----
     def keep_first(self, book, b):
-        """Giữ proposal đầu tiên của mỗi (height, round); bản thứ hai khác nội dung = equivocation."""
         key = (b.header.height, b.header.round)
         old = book.get(key)
         if old is None:
@@ -223,7 +322,7 @@ class Node:
         if pk is None or not verify(pk, "VOTE:" + self.ctx["chain_id"], v.body(), v.sig):
             return self.log("REJECT", reason="bad_vote_sig", height=v.height)
         slot = self.votes.setdefault((v.height, v.round, v.kind), {})
-        if v.voter in slot:  # luật 7: chỉ đếm 1 phiếu
+        if v.voter in slot:
             if slot[v.voter].block_hash != v.block_hash:
                 self.log("EQUIVOCATION", voter=v.voter, height=v.height, round=v.round)
             return
@@ -303,11 +402,13 @@ class Node:
                 for t, c in sorted(Counter(v.block_hash for v in pv.values()).items()):
                     if c >= self.Q:
                         if t == NIL:
-                            self.cast("PRECOMMIT", NIL); done = True
+                            self.cast("PRECOMMIT", NIL)
+                            done = True
                         elif t in self.blocks and self.check_block(self.blocks[t]):
-                            self.locked = (t, r)  # luật 4
+                            self.locked = (t, r)
                             self.log("LOCK", height=h, round=r, block=t.hex()[:8])
-                            self.cast("PRECOMMIT", t); done = True
+                            self.cast("PRECOMMIT", t)
+                            done = True
                         break
                 if done:
                     continue
@@ -316,12 +417,15 @@ class Node:
             if self.step == "PRECOMMIT":
                 if len(self.votes.get((h, r, "PRECOMMIT"), {})) >= self.Q:
                     self.set_timeout("PRECOMMIT")
-            # chốt block: Q precommit cho cùng một block, ở bất kỳ round nào của height này
+
+            # Chốt block: gom đủ Q precommit -> Tạo CommitCertificate rồi finalize
             for (hh, rr, kind), vs in sorted(self.votes.items()):
                 if hh == h and kind == "PRECOMMIT":
                     for t, c in sorted(Counter(v.block_hash for v in vs.values()).items()):
                         if t != NIL and c >= self.Q and t in self.blocks:
-                            return self.finalize(self.blocks[t])
+                            sigs = {v.voter: v.sig for v in vs.values() if v.block_hash == t}
+                            cert = CommitCertificate(height=hh, round=rr, block_hash=t, signatures=sigs)
+                            return self.finalize(self.blocks[t], cert)
             return
 
     def on_timeout(self, key):
@@ -337,13 +441,20 @@ class Node:
             return self.start_round(r + 1)
         self.run()
 
-    def finalize(self, b):
+    def finalize(self, b, cert=None):
         s, err = apply_txs(self.state, b.txs, self.ctx["chain_id"], self.ctx["acct_pks"])
         assert err is None, err
         self.state = s
         self.ledger.append(b)
+        if cert is not None:
+            self.certificates[b.header.height] = cert
+
+        # Dọn dẹp mempool & ghi nhận tx_hash
         used = {(t.sender, t.nonce) for t in b.txs}
         self.mempool = [t for t in self.mempool if (t.sender, t.nonce) not in used]
+        for t in b.txs:
+            self.seen_tx_hashes.add(H(encode(t.body())))
+
         h = b.header.height
         self.log("FINALIZE", height=h, round=b.header.round,
                  block=b.hash().hex()[:8], state=s.hash().hex()[:8])

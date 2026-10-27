@@ -20,7 +20,7 @@ class Net:
 
     def broadcast(self, src, msg):
         name = self.nodes[src].name
-        h = msg[1].header.height if msg[0] == "PROPOSAL" else msg[1].height
+        h = msg[1].header.height if msg[0] == "PROPOSAL" else getattr(msg[1], "height", 0)
         self.log(name, "SEND", type=msg[0], height=h)
         for dst in range(len(self.nodes)):
             # TODO: chỗ này sẽ thêm drop / duplicate / reorder / GST / rate limit

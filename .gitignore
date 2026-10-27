@@ -9,3 +9,7 @@ logs/
 
 # Archives
 *.zip
+
+.venv/
+.pytest_cache/
+logs/*.log
