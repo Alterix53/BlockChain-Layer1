@@ -115,12 +115,123 @@ class Net:
         return header.height
 
     def broadcast(self, src, msg):
-        name = self.nodes[src].name
-        h = msg[1].header.height if msg[0] == "PROPOSAL" else msg[1].height
-        self.log(name, "SEND", type=msg[0], height=h)
-        for dst in range(len(self.nodes)):
-            # TODO: chỗ này sẽ thêm drop / duplicate / reorder / GST / rate limit
-            self.push(self.now + self.rng.randint(1, self.delta), "MSG", dst, msg)
+        height = self._message_height(msg)
+        for dst in sorted(self.peers[src]):
+            self.send(src, dst, msg)
+        self.push(self.now, "MSG", src, src, msg)
+        self.log(self._node_name(src), "LOCAL_DELIVERY", type=msg[0],
+                 height=height)
+
+    def send(self, src, dst, msg):
+        if not (0 <= src < self.n and 0 <= dst < self.n):
+            raise ValueError(f"node gửi/nhận ngoài phạm vi: {src}, {dst}")
+        if src != dst and dst not in self.peers[src]:
+            raise ValueError(f"không có kết nối giữa node {src} và {dst}")
+        height = self._message_height(msg)
+        if src == dst:
+            self.log(self._node_name(src), "SEND", dst=self._node_name(dst),
+                     type=msg[0], height=height, local=True)
+            self.push(self.now, "MSG", src, dst, msg)
+            return
+
+        send_at = self._reserve_send_time(src, dst)
+        if send_at > self.now:
+            self.log(self._node_name(src), "DELAY", dst=self._node_name(dst),
+                     type=msg[0], height=height, reason="rate_limit",
+                     until=send_at)
+            self.push(send_at, "SEND_READY", src, dst, msg)
+            return
+        self._transmit(src, dst, msg)
+
+    def _reserve_send_time(self, src, dst):
+        if self.rate_limit is None:
+            return self.now
+
+        limit = self.rate_limit["max_messages"]
+        window = self.rate_limit["window"]
+        key = (src, dst)
+        times = [t for t in self.send_times.get(key, [])
+                 if t > self.now - window]
+        candidate = self.now
+        while True:
+            active = sorted(t for t in times if candidate - window < t <= candidate)
+            if len(active) < limit:
+                break
+            candidate = active[0] + window
+        times.append(candidate)
+        self.send_times[key] = sorted(times)
+        return candidate
+
+    def _transmit(self, src, dst, msg):
+        height = self._message_height(msg)
+        self.log(self._node_name(src), "SEND", dst=self._node_name(dst),
+                 type=msg[0], height=height)
+
+        before_gst = self.now < self.gst
+        if before_gst and self.rng.random() < self.pre_gst_drop_probability:
+            self.log(self._node_name(src), "DROP", dst=self._node_name(dst),
+                     type=msg[0], height=height, reason="pre_gst")
+            return
+
+        copies = 2 if self.rng.random() < self.duplicate_probability else 1
+        if copies > 1:
+            self.log(self._node_name(src), "DUPLICATE", dst=self._node_name(dst),
+                     type=msg[0], height=height, copies=copies)
+        for _ in range(copies):
+            delay, reordered = self._delivery_delay(src, dst, before_gst)
+            if delay:
+                self.log(self._node_name(src), "DELAY", dst=self._node_name(dst),
+                         type=msg[0], height=height, delay=delay,
+                         reason="reorder" if reordered else "network")
+            self.push(self.now + delay, "MSG", src, dst, msg)
+
+    def _delivery_delay(self, src, dst, before_gst):
+        if before_gst:
+            delay = self.rng.randint(0, self.pre_gst_max_delay)
+            reordered = (
+                self.rng.random() < self.pre_gst_reorder_probability
+                and self.pre_gst_max_delay > 0
+            )
+            if reordered:
+                delay += self.rng.randint(1, self.pre_gst_max_delay)
+            return delay, reordered
+
+        bound = self.link_delays.get(frozenset((src, dst)), self.delta)
+        return self.rng.randint(0, bound), False
+
+    def _receive(self, src, dst, msg):
+        if src == dst:
+            self.nodes[dst].on_message(msg, src)
+            return
+
+        height = self._message_height(msg)
+        src_name = self._node_name(src)
+        dst_name = self._node_name(dst)
+        blocked_until = self.blocked_peers.get((dst, src))
+        if blocked_until is not None and self.now < blocked_until:
+            self.log(dst_name, "DROP", src=src_name, type=msg[0],
+                     height=height, reason="peer_blocked")
+            return
+
+        if self.peer_block is not None:
+            key = (dst, src)
+            window = self.peer_block["window"]
+            times = [t for t in self.receive_times.get(key, [])
+                     if t > self.now - window]
+            if len(times) >= self.peer_block["max_messages"]:
+                until = self.now + self.peer_block["duration"]
+                self.blocked_peers[key] = until
+                self.log(dst_name, "BLOCK", src=src_name, until=until,
+                         reason="peer_rate_limit")
+                self.log(dst_name, "DROP", src=src_name, type=msg[0],
+                         height=height, reason="peer_rate_limit")
+                self.push(until, "UNBLOCK", dst, src, until)
+                self.receive_times[key] = times
+                return
+            times.append(self.now)
+            self.receive_times[key] = times
+
+        self.nodes[dst].on_message(msg, src)
 
     def set_timeout(self, idx, delay, key):
         self.push(self.now + delay, "TIMEOUT", None, idx, key)
