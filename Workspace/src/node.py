@@ -1,5 +1,6 @@
-"""Một validator: máy trạng thái Tendermint tối giản (propose/prevote/precommit/commit) hoàn chỉnh kết hợp Lõi đồng thuận (Phần B) và Tầng dữ liệu/Đồng bộ (Phần D)."""
-"""
+"""Một validator: máy trạng thái Tendermint tối giản (propose/prevote/precommit/commit),
+kết hợp lõi đồng thuận (phần B) và tầng dữ liệu/đồng bộ (phần D).
+
 Bản này thêm so với xương sống:
   * Luật 5 đầy đủ (proposal mang pol_round, mở khóa khi tự thấy polka ở round sau).
   * Proposer đề xuất lại block đã có polka.
@@ -54,7 +55,8 @@ class Node:
 
         # Dữ liệu sống qua nhiều height
         self.votes = {}               # (h, r, kind) -> {voter: Vote}
-        self.future = {}              # (h, r) -> Block của height tương lai
+        self.future = {}              # (h, r) -> proposal đầu tiên của height tương lai
+        self.future_blocks = {}       # (h, block_hash) -> thân MỌI proposal hợp lệ đến sớm
 
     # ----- tiện ích -----
     def log(self, ev, **kw):
@@ -86,8 +88,11 @@ class Node:
         for (hh, rr), fb in sorted(self.future.items()):
             if hh == h:
                 self.proposals[(hh, rr)] = fb
-                self.blocks[fb.hash()] = fb
+        for (hh, bh), fb in sorted(self.future_blocks.items()):
+            if hh == h:
+                self.blocks[bh] = fb
         self.future = {k: v for k, v in self.future.items() if k[0] > h}
+        self.future_blocks = {k: v for k, v in self.future_blocks.items() if k[0] > h}
 
         # Dựng lại peer_round từ phiếu đã đến sớm
         self.peer_round = {}
@@ -218,11 +223,16 @@ class Node:
         if tx_hash in self.seen_tx_hashes:
             return
 
+        # T3: tx lỗi bị loại VÀ ghi lý do (cùng tên lý do với execution.apply_tx).
+        # Chỉ đánh dấu "đã thấy" SAU khi kiểm xong: seen_tx_hashes băm body không băm chữ ký,
+        # nên bản sai chữ ký đến trước không được chặn bản đúng đến sau.
         pk = self.ctx["acct_pks"].get(tx.sender)
-        if pk is None or not verify(pk, "TX:" + self.ctx["chain_id"], tx.body(), tx.sig):
-            return
+        if pk is None:
+            return self.log("REJECT", reason="unknown_sender", sender=tx.sender, nonce=tx.nonce)
+        if not verify(pk, "TX:" + self.ctx["chain_id"], tx.body(), tx.sig):
+            return self.log("REJECT", reason="bad_tx_sig", sender=tx.sender, nonce=tx.nonce)
         if not tx.key.startswith(tx.sender + "/"):
-            return
+            return self.log("REJECT", reason="not_owner", sender=tx.sender, nonce=tx.nonce)
 
         self.seen_tx_hashes.add(tx_hash)
         self.mempool.append(tx)
@@ -252,6 +262,10 @@ class Node:
 
             if cert.height != h or cert.block_hash != blk.hash():
                 return self.log("REJECT_SYNC", reason="cert_mismatch", height=h)
+            # Block.hash() chỉ băm header (tx_root), không băm txs: phải tự kiểm thân khớp
+            # header, nếu không peer có thể đảo/thay txs mà certificate vẫn khớp
+            if blk.header.tx_root != tx_root(blk.txs):
+                return self.log("REJECT_SYNC", reason="bad_tx_root", height=h)
 
             valid_signers = set(self.ctx["vals"])
             unique_voters = set(cert.signatures.keys())
@@ -310,10 +324,13 @@ class Node:
         if hd.tx_root != tx_root(b.txs):                 # chặn từ cổng: body không khớp header
             return self.log("REJECT", reason="bad_tx_root", height=hd.height)
         if hd.height == self.height:
-            if self.keep_first(self.proposals, b):
-                self.blocks[b.hash()] = b
+            # prevote theo proposal đến TRƯỚC, nhưng giữ thân của MỌI proposal hợp lệ: nếu
+            # proposer gửi 2 block và block đến sau đạt Q precommit thì vẫn có thân để chốt
+            self.keep_first(self.proposals, b)
+            self.blocks.setdefault(b.hash(), b)
         else:
             self.keep_first(self.future, b)
+            self.future_blocks.setdefault((hd.height, b.hash()), b)
 
     def on_vote(self, v):
         if v.kind not in KINDS or not self.in_window(v.height, v.round):
