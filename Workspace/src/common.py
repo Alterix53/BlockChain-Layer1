@@ -1,8 +1,7 @@
 """Mã hóa tất định, hash, chữ ký (domain separation), và các kiểu dữ liệu."""
 import hashlib
 import struct
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
@@ -68,6 +67,11 @@ class Tx:
     value: str
     sig: bytes = b""
 
+    @property
+    def height(self) -> int:
+        """Hỗ trợ tương thích với bộ logger mạng của sim.py"""
+        return 0
+
     def body(self):
         return [self.sender, self.nonce, self.key, self.value]
 
@@ -76,6 +80,7 @@ class Tx:
 class Header:
     height: int
     round: int
+    pol_round: int     # -1: block mới; >=0: đề xuất lại block đã có polka ở round đó
     parent: bytes
     state_hash: bytes
     tx_root: bytes
@@ -83,7 +88,8 @@ class Header:
     sig: bytes = b""
 
     def body(self):
-        return [self.height, self.round, self.parent,
+        # Thứ tự phải trùng thứ tự trường (trừ sig) để Header(*body, sig=...) chạy đúng.
+        return [self.height, self.round, self.pol_round, self.parent,
                 self.state_hash, self.tx_root, self.proposer]
 
 
@@ -93,7 +99,10 @@ class Block:
     txs: tuple = ()
 
     def hash(self) -> bytes:
-        return H(encode(self.header.body()))
+        # "Block id": chỉ băm phần NỘI DUNG. Không băm round, pol_round, proposer,
+        # để cùng một nội dung đề xuất lại ở round khác vẫn ra cùng hash.
+        h = self.header
+        return H(encode([h.height, h.parent, h.state_hash, h.tx_root]))
 
 
 @dataclass(frozen=True)
@@ -111,3 +120,26 @@ class Vote:
 
 def tx_root(txs) -> bytes:
     return H(encode([[t.body(), t.sig] for t in txs]))
+
+
+@dataclass(frozen=True)
+class CommitCertificate:
+    height: int
+    round: int
+    block_hash: bytes
+    signatures: dict  # voter (str) -> signature (bytes)
+
+
+@dataclass(frozen=True)
+class SyncReq:
+    requester: str
+    from_height: int
+    to_height: int
+    height: int = 0  # Hỗ trợ log tương thích trong sim.py
+
+
+@dataclass(frozen=True)
+class SyncResp:
+    responder: str
+    chain_data: tuple  # Tuple chứa các cặp (Block, CommitCertificate)
+    height: int = 0
