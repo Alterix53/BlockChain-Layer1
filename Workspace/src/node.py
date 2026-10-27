@@ -1,4 +1,12 @@
-"""Một validator: máy trạng thái Tendermint hoàn chỉnh kết hợp Lõi đồng thuận (Phần B) và Tầng dữ liệu/Đồng bộ (Phần D)."""
+"""Một validator: máy trạng thái Tendermint tối giản (propose/prevote/precommit/commit) hoàn chỉnh kết hợp Lõi đồng thuận (Phần B) và Tầng dữ liệu/Đồng bộ (Phần D)."""
+"""
+Bản này thêm so với xương sống:
+  * Luật 5 đầy đủ (proposal mang pol_round, mở khóa khi tự thấy polka ở round sau).
+  * Proposer đề xuất lại block đã có polka.
+  * Nhảy round khi thấy f+1 validator ở round cao hơn (+ timeout cả round làm lưới an toàn).
+  * Buffer proposal/vote của height tương lai, có giới hạn bộ nhớ.
+  * Các hook nhỏ (send_proposal, make_vote, send_vote) để người khác ghi đè.
+"""
 from collections import Counter
 
 from .common import (
@@ -27,8 +35,8 @@ class Node:
         self.name = ctx["vals"][idx]
         self.net = ctx["net"]
         self.Q = 2 * ctx["f"] + 1
-        self.max_ahead = ctx.get("max_ahead_h", 3)
-        self.max_round = ctx.get("max_round", 1000)
+        self.max_ahead = ctx.get("max_ahead_h", 3)    # chỉ nhận tin tối đa 3 height phía trước
+        self.max_round = ctx.get("max_round", 1000)   # trần tuyệt đối cho round
         self.state = State()
         self.ledger = []              # Danh sách block đã chốt
         self.certificates = {}        # height -> CommitCertificate (Phần D)
@@ -97,7 +105,7 @@ class Node:
         if self.proposer(self.height, r) == self.name:
             self.propose()
         self.set_timeout("PROPOSE")
-        self.set_timeout("ROUND", 3)   # Lưới an toàn
+        self.set_timeout("ROUND", 3)   # lưới an toàn: dù thiếu phiếu cũng không đứng yên mãi
         self.run()
 
     def timeout_len(self, r):
@@ -112,6 +120,7 @@ class Node:
 
     # ----- nhảy round -----
     def skip_target(self):
+        """Round lớn nhất mà ít nhất f+1 validator khác nhau đã đạt (-1 nếu chưa đủ)."""
         rs = sorted(self.peer_round.values(), reverse=True)
         f = self.ctx["f"]
         return rs[f] if len(rs) > f else -1
@@ -126,12 +135,14 @@ class Node:
 
     # ----- polka -----
     def polka(self, h, r, bh):
+        """Có >= Q prevote cho bh ở (h, r) không?"""
         pv = self.votes.get((h, r, "PREVOTE"), {})
         return sum(1 for v in pv.values() if v.block_hash == bh) >= self.Q
 
     def best_polka(self):
+        """Polka ở round cao nhất (< round hiện tại) cho block mà ta có thân và hợp lệ."""
         best = None
-        for (hh, rr, kind), vs in sorted(self.votes.items()):
+        for (hh, rr, kind), vs in sorted(self.votes.items()):   # round tăng dần
             if hh != self.height or kind != "PREVOTE" or rr >= self.round:
                 continue
             for t, c in sorted(Counter(v.block_hash for v in vs.values()).items()):
@@ -145,7 +156,7 @@ class Node:
         if pol:
             t, pr = pol
             old = self.blocks[t]
-            blk = self.seal(old.txs, old.header.state_hash, pr)
+            blk = self.seal(old.txs, old.header.state_hash, pr)   # giữ nguyên nội dung
             self.log("REPROPOSE", height=self.height, round=self.round,
                      pol_round=pr, block=t.hex()[:8])
         else:
@@ -171,7 +182,7 @@ class Node:
         hd = Header(*hd.body(), sig=sign(self.kp, "HEADER:" + self.ctx["chain_id"], hd.body()))
         return Block(hd, tuple(txs))
 
-    # ----- hook gửi tin -----
+    # ----- hook gửi tin (người khác ghi đè để tạo node lỗi) -----
     def send_proposal(self, blk):
         self.net.broadcast(self.idx, ("PROPOSAL", blk))
 
@@ -287,7 +298,7 @@ class Node:
 
     def on_proposal(self, b):
         hd = b.header
-        if not self.in_window(hd.height, hd.round):
+        if not self.in_window(hd.height, hd.round):      # cũ quá, hoặc xa quá
             return
         pk = self.ctx["vpks"].get(hd.proposer)
         if pk is None or not verify(pk, "HEADER:" + self.ctx["chain_id"], hd.body(), hd.sig):
@@ -296,9 +307,8 @@ class Node:
             return self.log("REJECT", reason="wrong_proposer", height=hd.height)
         if not (-1 <= hd.pol_round < hd.round):
             return self.log("REJECT", reason="bad_pol_round", height=hd.height)
-        if hd.tx_root != tx_root(b.txs):
+        if hd.tx_root != tx_root(b.txs):                 # chặn từ cổng: body không khớp header
             return self.log("REJECT", reason="bad_tx_root", height=hd.height)
-
         if hd.height == self.height:
             if self.keep_first(self.proposals, b):
                 self.blocks[b.hash()] = b
@@ -347,15 +357,18 @@ class Node:
 
     # ----- luật prevote (luật 3, 4, 5) -----
     def prevote_target(self, b):
+        """Trả về hash block, NIL, hoặc None (= chưa đủ bằng chứng, chờ thêm)."""
         hd, bh = b.header, b.hash()
         if not self.check_block(b):
             return NIL
         if self.locked is not None and self.locked[0] == bh:
-            return bh
-        if hd.pol_round < 0:
+            return bh                                    # đúng block đang khóa
+        if hd.pol_round < 0:                             # block mới
             return bh if self.locked is None else NIL
+        # đề xuất lại: phải TỰ thấy polka ở pol_round (không tin lời proposer)
         if not self.polka(hd.height, hd.pol_round, bh):
             return None
+        # luật 5: đang khóa block khác thì chỉ đổi khi polka ở round SAU round khóa
         if self.locked is None or self.locked[1] < hd.pol_round:
             return bh
         return NIL
@@ -382,6 +395,7 @@ class Node:
                     if t is not None:
                         self.cast("PREVOTE", t)
                         continue
+                    # t is None: chờ polka; timeout PROPOSE sẽ ép NIL nếu không đến
             if self.step == "PREVOTE":
                 pv = self.votes.get((h, r, "PREVOTE"), {})
                 done = False
@@ -446,4 +460,4 @@ class Node:
                  block=b.hash().hex()[:8], state=s.hash().hex()[:8])
         self.votes = {k: v for k, v in self.votes.items() if k[0] > h}
         self.future = {k: v for k, v in self.future.items() if k[0] > h}
-        self.start_height(h + 1)
+        self.start_height(h + 1)   # nạp future và gọi run() bên trong
