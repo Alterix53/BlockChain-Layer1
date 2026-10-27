@@ -200,17 +200,17 @@ class Node:
 
     # ----- nhận thông điệp -----
     def on_message(self, msg):
+        kind, payload = msg
+        if kind == "SYNC_REQ":   # node đã chốt xong vẫn phải phục vụ đồng bộ cho node tụt lại
+            return self.on_sync_request(payload)
         if self.done:
             return
-        kind, payload = msg
         if kind == "PROPOSAL":
             self.on_proposal(payload)
         elif kind == "VOTE":
             self.on_vote(payload)
         elif kind == "TX":
             self.on_tx(payload)
-        elif kind == "SYNC_REQ":
-            self.on_sync_request(payload)
         elif kind == "SYNC_RESP":
             self.on_sync_response(payload)
 
@@ -239,20 +239,35 @@ class Node:
         self.log("TX_RECEIVED", sender=tx.sender, nonce=tx.nonce)
         self.net.broadcast(self.idx, ("TX", tx))
 
+    def request_sync(self):
+        """Hỏi các peer (block, certificate) từ height hiện tại. Gọi khi cả một round trôi qua
+        mà không chốt được: có thể mạng đã chốt height này mà mình thiếu phiếu hoặc thân block.
+        Hỏi thừa cũng vô hại: ai chưa có thì không trả lời, trả lời sai thì bị REJECT_SYNC."""
+        req = SyncReq(requester=self.name, from_height=self.height,
+                      to_height=self.height + self.max_ahead)
+        self.log("SYNC_REQUEST", height=req.from_height, to=req.to_height)
+        self.net.broadcast(self.idx, ("SYNC_REQ", req))
+
     def on_sync_request(self, req):
-        chain_data = []
-        for h in range(req.from_height, req.to_height + 1):
-            if h <= len(self.ledger):
-                blk = self.ledger[h - 1]
-                cert = self.certificates.get(h)
-                if cert is not None:
-                    chain_data.append((blk, cert))
+        vals = self.ctx["vals"]
+        if req.requester not in vals or req.requester == self.name:
+            return
+        # chặn khoảng do người lạ gửi: không lặp theo to_height tùy ý (tránh DoS), tối đa
+        # max_ahead + 1 block mỗi lần, và chỉ những height đã có certificate
+        lo = max(1, req.from_height)
+        hi = min(req.to_height, len(self.ledger), lo + self.max_ahead)
+        chain_data = tuple((self.ledger[h - 1], self.certificates[h])
+                           for h in range(lo, hi + 1) if h in self.certificates)
         if chain_data:
-            resp = SyncResp(responder=self.name, chain_data=tuple(chain_data))
-            for dst_idx, node in enumerate(self.net.nodes):
-                if node.name == req.requester:
-                    self.net.push(self.net.now + 1, "MSG", dst_idx, ("SYNC_RESP", resp))
-                    break
+            self.send_to(vals.index(req.requester), ("SYNC_RESP", SyncResp(self.name, chain_data)))
+
+    def send_to(self, dst, msg):
+        """Gửi riêng cho một node. TODO(A): khi Net có send(src, dst, msg) thì chỉ còn nhánh
+        đầu; nhánh sau là cách cũ của D (đặt thẳng vào hàng đợi, không qua độ trễ của mạng)."""
+        if callable(getattr(self.net, "send", None)):
+            self.net.send(self.idx, dst, msg)
+        else:
+            self.net.push(self.net.now + 1, "MSG", dst, msg)
 
     def on_sync_response(self, resp):
         for blk, cert in resp.chain_data:
@@ -267,21 +282,14 @@ class Node:
             if blk.header.tx_root != tx_root(blk.txs):
                 return self.log("REJECT_SYNC", reason="bad_tx_root", height=h)
 
-            valid_signers = set(self.ctx["vals"])
-            unique_voters = set(cert.signatures.keys())
-            if not unique_voters.issubset(valid_signers) or len(unique_voters) < self.Q:
+            if not set(cert.signatures) <= set(self.ctx["vals"]):
+                return self.log("REJECT_SYNC", reason="unknown_signer", height=h)
+            if len(cert.signatures) < self.Q:
                 return self.log("REJECT_SYNC", reason="insufficient_cert_sigs", height=h)
-
-            vote_body = Vote("PRECOMMIT", cert.height, cert.round, cert.block_hash, "").body()[:4]
-            sig_ok = True
-            for voter, sig in cert.signatures.items():
-                v_body = vote_body + [voter]
-                pk = self.ctx["vpks"].get(voter)
-                if pk is None or not verify(pk, "VOTE:" + self.ctx["chain_id"], v_body, sig):
-                    sig_ok = False
-                    break
-            if not sig_ok:
-                return self.log("REJECT_SYNC", reason="invalid_cert_sig", height=h)
+            for voter, sig in sorted(cert.signatures.items()):
+                body = Vote("PRECOMMIT", h, cert.round, cert.block_hash, voter).body()
+                if not verify(self.ctx["vpks"][voter], "VOTE:" + self.ctx["chain_id"], body, sig):
+                    return self.log("REJECT_SYNC", reason="invalid_cert_sig", height=h)
 
             if blk.header.parent != self.last_hash():
                 return self.log("REJECT_SYNC", reason="bad_parent_hash", height=h)
@@ -290,13 +298,9 @@ class Node:
             if err or new_s.hash() != blk.header.state_hash:
                 return self.log("REJECT_SYNC", reason="bad_state_execution", height=h)
 
-            self.state = new_s
-            self.ledger.append(blk)
-            self.certificates[h] = cert
-            for t in blk.txs:
-                self.seen_tx_hashes.add(H(encode(t.body())))
             self.log("SYNC_CATCHUP_SUCCESS", height=h, block=blk.hash().hex()[:8])
-            self.start_height(h + 1)
+            # chốt qua đúng đường của finalize: dọn mempool, votes, future rồi sang height sau
+            self.finalize(blk, cert)
 
     # ----- thẩm định thông điệp -----
     def keep_first(self, book, b):
@@ -454,7 +458,10 @@ class Node:
             self.cast("PREVOTE", NIL)
         elif kind == "PREVOTE" and self.step == "PREVOTE":
             self.cast("PRECOMMIT", NIL)
-        elif kind in ("PRECOMMIT", "ROUND"):
+        elif kind == "PRECOMMIT":
+            return self.start_round(r + 1)
+        elif kind == "ROUND":   # cả round trôi qua không chốt được: hỏi đồng bộ rồi sang round sau
+            self.request_sync()
             return self.start_round(r + 1)
         self.run()
 

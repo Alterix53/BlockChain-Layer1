@@ -9,7 +9,8 @@ n10/Q7 -> 4 > f (luôn có >= 1 honest, mà honest không ký hai phía).
 Kết quả giống nhau dù có chia cắt mạng trước GST (gst=5000) hay không (gst=0): nhóm R không bao
 giờ nhận block A nên phiếu A của nhóm L tới R cũng không đủ Q. Thí nghiệm chỉ cần send() của A.
 Hai CommitCertificate (của D) của hai nhánh đều hợp lệ: node mới đồng bộ sẽ theo nhánh nào là
-tùy peer nào trả lời. Certificate chỉ đáng tin khi n >= 3f+1.
+tùy peer nào trả lời. Certificate chỉ đáng tin khi n >= 3f+1. Ở n=10, nhóm không chốt được
+tự hỏi đồng bộ (SYNC_REQ) sau một round thất bại và bắt kịp bằng certificate của nhóm kia.
 
 Chạy test:     python -m unittest discover -s tests -p "test_quorum_boundary.py" -v
 In báo cáo:    python tests/test_quorum_boundary.py --report
@@ -31,7 +32,7 @@ from src.node import Node  # noqa: E402
 from src.sim import Net  # noqa: E402
 from c_helpers import (RecordingNet, assert_honest_certificates,  # noqa: E402
                        assert_honest_progress, assert_honest_safety, cert_sigs_ok, events,
-                       honest_finalized)
+                       honest_finalized, log_events)
 
 BYZ = (1, 7, 8)
 LEFT = (0, 2, 3)
@@ -98,14 +99,9 @@ def run_experiment(n, q, right, f=3, seed=7, gst=5000):
                            byz={f"V{i}" for i in BYZ}, ctx=ctx, q=q)
 
 
-def catch_up_from(ex, donor):
-    """Đưa (block, certificate) height 1 của `donor` cho mọi honest chưa chốt, qua SYNC_RESP
-    của D. Trả về tên các honest vẫn chưa chốt được."""
-    resp = SyncResp(donor.name, ((donor.ledger[0], donor.certificates[1]),))
-    stuck = [nd for nd in ex.nodes if nd.name not in ex.byz and not nd.ledger]
-    for nd in stuck:
-        nd.on_message(("SYNC_RESP", resp))
-    return [nd.name for nd in stuck if not nd.ledger]
+def synced_nodes(ex):
+    """Tên các node đã chốt nhờ đồng bộ (SYNC_RESP) chứ không phải nhờ tự gom phiếu."""
+    return sorted({r["node"] for r in log_events(ex.net, "SYNC_CATCHUP_SUCCESS")})
 
 
 def fresh_node_syncs(ex, block, cert):
@@ -159,15 +155,15 @@ class TestQuorumBoundary(unittest.TestCase):
                 ex = run_experiment(n=10, q=7, right=RIGHT_N10, gst=gst)
                 a, b = (blk.hash() for blk in ex.coalition.blocks)
                 assert_honest_safety(ex.nodes, ex.byz)
-                fin = honest_finalized(ex.nodes, ex.byz)[1]
-                self.assertEqual(sorted(fin[b]), ["V4", "V5", "V6", "V9"])  # R: 4 + 3 = 7 = Q
-                self.assertNotIn(a, fin)                                    # L: 3 + 3 = 6 < Q
-                assert_honest_certificates(ex.nodes, ex.byz)
-                # L không chốt được chỉ vì thiếu thân block B; đồng bộ bằng certificate của R
-                # (đường SYNC_RESP của D) là bắt kịp, và vẫn cùng một chuỗi
-                self.assertEqual(catch_up_from(ex, ex.nodes[4]), [])
-                assert_honest_safety(ex.nodes, ex.byz)
                 assert_honest_progress(ex.nodes, ex.byz, heights=1)
+                assert_honest_certificates(ex.nodes, ex.byz)
+                fin = honest_finalized(ex.nodes, ex.byz)[1]
+                self.assertEqual(list(fin), [b], "chỉ có block B được chốt, A thì không")
+                # R tự chốt (4 + 3 = 7 = Q). L chỉ có 3 + 3 = 6 < Q và không có thân B, nên
+                # sau một round thất bại tự hỏi đồng bộ và bắt kịp bằng certificate của R
+                self.assertEqual(synced_nodes(ex), ["V0", "V2", "V3"])
+                self.assertEqual(sorted({r["node"] for r in log_events(ex.net, "SYNC_REQUEST")}),
+                                 ["V0", "V2", "V3"])
                 self.assertTrue(any("ev=BYZ_EQUIVOCATE_VOTE" in x for x in ex.net.logs),
                                 "tấn công phải thực sự chạy")
 
@@ -224,13 +220,11 @@ def report():
             for bh, names in blocks.items():
                 print(f"    height {h}: block {bh.hex()[:16]} chốt bởi {names}")
         fork = any(len(m) > 1 for m in fin.values())
+        if synced_nodes(ex):
+            print(f"    chốt nhờ tự hỏi đồng bộ (không đủ phiếu/thân block): {synced_nodes(ex)}")
         stuck = [nd.name for nd in ex.nodes if nd.name not in ex.byz and not nd.ledger]
         if stuck:
             print(f"    honest chưa chốt (liveness, không phải fork): {stuck}")
-            donor = next((nd for nd in ex.nodes if nd.name not in ex.byz and nd.ledger), None)
-            if donor:
-                print(f"    đồng bộ certificate của {donor.name} -> còn chưa chốt: "
-                      f"{catch_up_from(ex, donor) or 'không'}")
         print("    => FORK: safety bị phá" if fork else
               "    => an toàn: không có 2 block ở cùng height")
         if fork:

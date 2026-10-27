@@ -247,7 +247,7 @@ class TestT3CommitCertificate(unittest.TestCase):
     def test_unknown_signer(self):
         cert = self.cert()
         bad = self.with_sigs(cert, V99=cert.signatures["V1"])
-        self.assert_rejected(self.block, bad, "insufficient_cert_sigs")  # D gộp chung một lý do
+        self.assert_rejected(self.block, bad, "unknown_signer")
 
     def test_certificate_of_another_block(self):
         other = valid_block(self.nodes[1])  # block rỗng, khác hash
