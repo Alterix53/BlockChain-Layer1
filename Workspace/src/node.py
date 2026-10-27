@@ -44,19 +44,9 @@ class Node:
         self.mempool = []             # Hàng đợi giao dịch chờ
         self.seen_tx_hashes = set()   # Khử trùng lặp mempool trong O(1) (Phần D)
         self.done = False
-        self.height, self.round, self.step = 0, 0, "PROPOSE"
-        self.signed = {}              # (h, r, kind) -> block_hash đã ký (luật 1, 2)
-        self.locked = None            # (block_hash, round)
-
-        # Dữ liệu của height hiện tại (reset ở start_height)
-        self.proposals, self.blocks, self.checked = {}, {}, {}
-        self.scheduled = set()
-        self.peer_round = {}          # voter -> round cao nhất từng thấy ở height này
-
-        # Dữ liệu sống qua nhiều height
-        self.votes = {}               # (h, r, kind) -> {voter: Vote}
-        self.future = {}              # (h, r) -> proposal đầu tiên của height tương lai
-        self.future_blocks = {}       # (h, block_hash) -> thân MỌI proposal hợp lệ đến sớm
+        self.height = 0
+        self.signed = {}          # (h, r, kind) -> block_hash đã ký (luật 1, 2)
+        self.locked = None        # (block_hash, round)
 
     # ----- tiện ích -----
     def log(self, ev, **kw):
@@ -83,24 +73,8 @@ class Node:
             return
         self.height, self.locked = h, None
         self.proposals, self.blocks, self.checked = {}, {}, {}
-
-        # Nạp proposal đến sớm TRƯỚC khi start_round để run() thấy ngay
-        for (hh, rr), fb in sorted(self.future.items()):
-            if hh == h:
-                self.proposals[(hh, rr)] = fb
-        for (hh, bh), fb in sorted(self.future_blocks.items()):
-            if hh == h:
-                self.blocks[bh] = fb
-        self.future = {k: v for k, v in self.future.items() if k[0] > h}
-        self.future_blocks = {k: v for k, v in self.future_blocks.items() if k[0] > h}
-
-        # Dựng lại peer_round từ phiếu đã đến sớm
-        self.peer_round = {}
-        for (hh, rr, _), vs in self.votes.items():
-            if hh == h:
-                for voter in vs:
-                    self.peer_round[voter] = max(self.peer_round.get(voter, -1), rr)
-
+        if not hasattr(self, "votes"):
+            self.votes = {}
         self.scheduled = set()
         self.start_round(max(0, self.skip_target()))
 
@@ -185,10 +159,8 @@ class Node:
         hd = Header(self.height, self.round, pol_round, self.last_hash(),
                     state_hash, tx_root(txs), self.name)
         hd = Header(*hd.body(), sig=sign(self.kp, "HEADER:" + self.ctx["chain_id"], hd.body()))
-        return Block(hd, tuple(txs))
-
-    # ----- hook gửi tin (người khác ghi đè để tạo node lỗi) -----
-    def send_proposal(self, blk):
+        blk = Block(hd, tuple(chosen))
+        self.log("PROPOSE", height=self.height, round=self.round, txs=len(chosen))
         self.net.broadcast(self.idx, ("PROPOSAL", blk))
 
     def make_vote(self, kind, target):
@@ -200,13 +172,14 @@ class Node:
 
     # ----- nhận thông điệp -----
     def on_message(self, msg):
-        kind, payload = msg
-        if kind == "SYNC_REQ":   # node đã chốt xong vẫn phải phục vụ đồng bộ cho node tụt lại
-            return self.on_sync_request(payload)
         if self.done:
             return
         if kind == "PROPOSAL":
             self.on_proposal(payload)
+        elif kind == "HEADER":
+            self.on_header(payload, src)
+        elif kind == "BODY":
+            self.on_body(payload)
         elif kind == "VOTE":
             self.on_vote(payload)
         elif kind == "TX":
@@ -216,103 +189,6 @@ class Node:
 
         if not self.maybe_skip_round():
             self.run()
-
-    # ----- Phần D: Mempool Gossip & Catch-up Sync -----
-    def on_tx(self, tx):
-        tx_hash = H(encode(tx.body()))
-        if tx_hash in self.seen_tx_hashes:
-            return
-
-        # T3: tx lỗi bị loại VÀ ghi lý do (cùng tên lý do với execution.apply_tx).
-        # Chỉ đánh dấu "đã thấy" SAU khi kiểm xong: seen_tx_hashes băm body không băm chữ ký,
-        # nên bản sai chữ ký đến trước không được chặn bản đúng đến sau.
-        pk = self.ctx["acct_pks"].get(tx.sender)
-        if pk is None:
-            return self.log("REJECT", reason="unknown_sender", sender=tx.sender, nonce=tx.nonce)
-        if not verify(pk, "TX:" + self.ctx["chain_id"], tx.body(), tx.sig):
-            return self.log("REJECT", reason="bad_tx_sig", sender=tx.sender, nonce=tx.nonce)
-        if not tx.key.startswith(tx.sender + "/"):
-            return self.log("REJECT", reason="not_owner", sender=tx.sender, nonce=tx.nonce)
-
-        self.seen_tx_hashes.add(tx_hash)
-        self.mempool.append(tx)
-        self.log("TX_RECEIVED", sender=tx.sender, nonce=tx.nonce)
-        self.net.broadcast(self.idx, ("TX", tx))
-
-    def request_sync(self):
-        """Hỏi các peer (block, certificate) từ height hiện tại. Gọi khi cả một round trôi qua
-        mà không chốt được: có thể mạng đã chốt height này mà mình thiếu phiếu hoặc thân block.
-        Hỏi thừa cũng vô hại: ai chưa có thì không trả lời, trả lời sai thì bị REJECT_SYNC."""
-        req = SyncReq(requester=self.name, from_height=self.height,
-                      to_height=self.height + self.max_ahead)
-        self.log("SYNC_REQUEST", height=req.from_height, to=req.to_height)
-        self.net.broadcast(self.idx, ("SYNC_REQ", req))
-
-    def on_sync_request(self, req):
-        vals = self.ctx["vals"]
-        if req.requester not in vals or req.requester == self.name:
-            return
-        # chặn khoảng do người lạ gửi: không lặp theo to_height tùy ý (tránh DoS), tối đa
-        # max_ahead + 1 block mỗi lần, và chỉ những height đã có certificate
-        lo = max(1, req.from_height)
-        hi = min(req.to_height, len(self.ledger), lo + self.max_ahead)
-        chain_data = tuple((self.ledger[h - 1], self.certificates[h])
-                           for h in range(lo, hi + 1) if h in self.certificates)
-        if chain_data:
-            self.send_to(vals.index(req.requester), ("SYNC_RESP", SyncResp(self.name, chain_data)))
-
-    def send_to(self, dst, msg):
-        """Gửi riêng cho một node. TODO(A): khi Net có send(src, dst, msg) thì chỉ còn nhánh
-        đầu; nhánh sau là cách cũ của D (đặt thẳng vào hàng đợi, không qua độ trễ của mạng)."""
-        if callable(getattr(self.net, "send", None)):
-            self.net.send(self.idx, dst, msg)
-        else:
-            self.net.push(self.net.now + 1, "MSG", dst, msg)
-
-    def on_sync_response(self, resp):
-        for blk, cert in resp.chain_data:
-            h = blk.header.height
-            if h != self.height:
-                continue
-
-            if cert.height != h or cert.block_hash != blk.hash():
-                return self.log("REJECT_SYNC", reason="cert_mismatch", height=h)
-            # Block.hash() chỉ băm header (tx_root), không băm txs: phải tự kiểm thân khớp
-            # header, nếu không peer có thể đảo/thay txs mà certificate vẫn khớp
-            if blk.header.tx_root != tx_root(blk.txs):
-                return self.log("REJECT_SYNC", reason="bad_tx_root", height=h)
-
-            if not set(cert.signatures) <= set(self.ctx["vals"]):
-                return self.log("REJECT_SYNC", reason="unknown_signer", height=h)
-            if len(cert.signatures) < self.Q:
-                return self.log("REJECT_SYNC", reason="insufficient_cert_sigs", height=h)
-            for voter, sig in sorted(cert.signatures.items()):
-                body = Vote("PRECOMMIT", h, cert.round, cert.block_hash, voter).body()
-                if not verify(self.ctx["vpks"][voter], "VOTE:" + self.ctx["chain_id"], body, sig):
-                    return self.log("REJECT_SYNC", reason="invalid_cert_sig", height=h)
-
-            if blk.header.parent != self.last_hash():
-                return self.log("REJECT_SYNC", reason="bad_parent_hash", height=h)
-
-            new_s, err = apply_txs(self.state, blk.txs, self.ctx["chain_id"], self.ctx["acct_pks"])
-            if err or new_s.hash() != blk.header.state_hash:
-                return self.log("REJECT_SYNC", reason="bad_state_execution", height=h)
-
-            self.log("SYNC_CATCHUP_SUCCESS", height=h, block=blk.hash().hex()[:8])
-            # chốt qua đúng đường của finalize: dọn mempool, votes, future rồi sang height sau
-            self.finalize(blk, cert)
-
-    # ----- thẩm định thông điệp -----
-    def keep_first(self, book, b):
-        key = (b.header.height, b.header.round)
-        old = book.get(key)
-        if old is None:
-            book[key] = b
-            return True
-        if old.hash() != b.hash():
-            self.log("EQUIVOCATION", proposer=b.header.proposer,
-                     height=key[0], round=key[1])
-        return False
 
     def on_proposal(self, b):
         hd = b.header
@@ -403,7 +279,7 @@ class Node:
         v = self.make_vote(kind, target)
         self.step = kind
         self.log("VOTE", kind=kind, height=v.height, round=v.round, block=target.hex()[:8] or "NIL")
-        self.send_vote(v)
+        self.net.broadcast(self.idx, ("VOTE", v))
 
     # ----- các quy tắc chuyển bước -----
     def run(self):
@@ -482,6 +358,10 @@ class Node:
         h = b.header.height
         self.log("FINALIZE", height=h, round=b.header.round,
                  block=b.hash().hex()[:8], state=s.hash().hex()[:8])
-        self.votes = {k: v for k, v in self.votes.items() if k[0] > h}
-        self.future = {k: v for k, v in self.future.items() if k[0] > h}
-        self.start_height(h + 1)   # nạp future và gọi run() bên trong
+        self.votes = {k: v for k, v in self.votes.items() if k[0] > b.header.height}
+        self.start_height(b.header.height + 1)
+        for fb in getattr(self, "future", []):  # xử lý proposal đến sớm
+            if fb.header.height == self.height:
+                self.on_proposal(fb)
+        self.future = [x for x in getattr(self, "future", []) if x.header.height > self.height]
+        self.run()

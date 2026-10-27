@@ -5,10 +5,26 @@
   "f": 3,
   "heights": 5,
   "delta": 20,
+  "gst": 1000,
+  "pre_gst_max_delay": 100,
+  "pre_gst_drop_probability": 0.0,
+  "duplicate_probability": 0.05,
+  "pre_gst_reorder_probability": 0.1,
+  "link_delays": {},
+  "rate_limit": {
+    "max_messages": 50,
+    "window": 100
+  },
+  "peer_block": {
+    "max_messages": 100,
+    "window": 100,
+    "duration": 50
+  },
   "base_timeout": 200,
   "timeout_inc": 100,
   "max_txs_per_block": 10,
   "accounts": ["Alice", "Bob", "Carol"],
   "txs_per_account": 5,
-  "t_end": 100000
+  "t_end": 100000,
+  "links": "full"
 }
