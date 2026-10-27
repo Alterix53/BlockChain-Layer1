@@ -31,19 +31,59 @@ flowchart LR
 
 ### 1.2. Hàng Đợi Ưu Tiên (`heapq`)
 - Mỗi sự kiện mạng được đẩy vào hàng đợi dưới dạng một tuple:
-  $$(t, \text{seq}, \text{kind}, \text{dst}, \text{payload})$$
+  $$(t, \text{seq}, \text{kind}, \text{src}, \text{dst}, \text{payload})$$
   - $t$: Thời điểm sự kiện sẽ diễn ra.
   - $\text{seq}$: Số thứ tự tuần tự để phá vỡ thế hòa (tie-breaking) nếu hai sự kiện có cùng $t$.
-  - $\text{kind}$: Loại sự kiện (`START`, `MSG`, `TIMEOUT`).
+  - $\text{kind}$: Loại sự kiện (`START`, `MSG`, `TIMEOUT`, `SEND_READY`, `UNBLOCK`).
+  - $\text{src}$: Node gửi; để `None` với event nội bộ như `START` hoặc `TIMEOUT`.
   - $\text{dst}$: Chỉ số của node đích nhận sự kiện.
   - $\text{payload}$: Dữ liệu thông điệp hoặc khóa timeout.
 
 ### 1.3. Trình Sinh Số Giả Ngẫu Nhiên Có Hạt Giống (`PRNG Seed`)
-- Độ trễ gửi tin giữa các node được sinh bằng:
-  ```python
-  self.push(self.now + self.rng.randint(1, self.delta), "MSG", dst, msg)
-  ```
+- Mọi quyết định ngẫu nhiên của mạng (drop, duplicate, delay và reorder) dùng chung `random.Random(seed)`.
+  - Trước GST: message có thể bị drop; độ trễ lấy từ `0..pre_gst_max_delay`. Reorder được mô phỏng bằng cách cộng thêm độ trễ.
+  - Từ GST trở đi: message không bị drop do mô hình mạng và độ trễ giữa hai peer không vượt quá `delta` (hoặc giới hạn riêng trong `link_delays`).
+  - Duplicate có thể bật ở cả hai giai đoạn để kiểm tra xử lý message lặp.
 - Với `seed = 42` cố định trong cấu hình, chuỗi các số ngẫu nhiên sinh ra trên máy Windows hay máy Linux đều **giống hệt nhau $100\%$**!
+
+### 1.4. Cấu hình topology và chính sách mạng
+Các thiết lập được đọc từ `Workspace/config/default.json`:
+
+| Trường | Ý nghĩa |
+| :--- | :--- |
+| `links` | `"full"` hoặc danh sách link hai chiều dạng `[[0, 1], [1, 2]]`. |
+| `link_delays` | Độ trễ tối đa riêng cho link, khóa dạng `"0-1"`; giá trị không vượt `delta`. |
+| `gst`, `delta` | Mốc Global Stabilization Time và chặn trên độ trễ sau GST. |
+| `pre_gst_max_delay` | Độ trễ tối đa dùng cho message gửi trước GST. |
+| `pre_gst_drop_probability` | Xác suất drop trước GST, trong khoảng `[0, 1]`. |
+| `duplicate_probability` | Xác suất tạo thêm một bản sao message. |
+| `pre_gst_reorder_probability` | Xác suất cộng thêm trễ trước GST để tạo đảo thứ tự. |
+| `rate_limit` | Giới hạn số message gửi trên mỗi kết nối trong một cửa sổ thời gian; `null` để tắt. |
+| `peer_block` | Ngưỡng nhận message để tạm block peer quá mức và thời gian block; `null` để tắt. |
+
+Thông điệp đồng thuận vẫn đi qua hàng đợi event. Proposal được truyền theo ba loại message: `HEADER`, `REQUEST_BODY` và `BODY`; node chỉ yêu cầu body sau khi nhận header, và proposer chỉ gửi body theo yêu cầu. Sự kiện mạng được ghi log với thời điểm, peer, loại message và height khi xác định được.
+
+Ví dụ:
+```json
+{
+  "links": [[0, 1], [1, 2]],
+  "link_delays": {"0-1": 3, "1-2": 8},
+  "delta": 20,
+  "gst": 500,
+  "pre_gst_max_delay": 100,
+  "pre_gst_drop_probability": 0.05,
+  "duplicate_probability": 0.02,
+  "pre_gst_reorder_probability": 0.1,
+  "rate_limit": {"max_messages": 50, "window": 100},
+  "peer_block": {"max_messages": 100, "window": 100, "duration": 50}
+}
+```
+
+Chạy simulator từ thư mục `Workspace`:
+```bash
+python -m src.main --config config/default.json --twice
+python -m unittest discover -s tests -v
+```
 
 ---
 
@@ -92,6 +132,10 @@ Dưới đây là bảng tổng hợp và phân tích chuyên sâu 8 bài test t
 | **T6** | **Proposer silent/crashed** | Proposer ở round 0 bị sập nguồn hoặc giữ im lặng | Đồng hồ đếm ngược `timeout_len(0)` kích hoạt `ev=TIMEOUT kind=PROPOSE`. Các node bỏ phiếu `PREVOTE NIL`, chuyển sang `PRECOMMIT NIL` rồi sang Round 1. Proposer mới được chọn và chuỗi tiếp tục tiến lên (Liveness). |
 | **T7** | **Up to $f$ Byzantine equivocate** | Có tối đa $f$ ($f = 3$) validator gian lận hai mặt (gửi 2 phiếu khác nhau cho 2 nhóm) | Nhờ định lý giao điểm Quorum ($|Q_1 \cap Q_2| \ge f + 1$), luôn có ít nhất 1 node trung thực ở giao điểm ngăn chặn việc chốt 2 block. Node phát hiện và ghi log `ev=EQUIVOCATION`. |
 | **T8** | **Same seed rerun twice** | Chạy mô phỏng lại 2 lần liên tiếp với cùng một file cấu hình | So sánh chuỗi log và hash trạng thái: Khớp $100\%$ từng ký tự (`Byte-identical logs and final state hash`). |
+
+T2 và T5 có kiểm thử end-to-end trong `Workspace/tests/test_sim.py`:
+- **T2** chạy mạng với duplicate và reorder, xác nhận mọi validator finalize cùng số block và không có hai hash khác nhau ở cùng height; đồng thời gửi lại một vote hợp lệ và một vote equivocation để xác nhận mỗi validator chỉ được đếm một lần.
+- **T5** chạy nhiều seed với drop, delay và reorder trước GST; kiểm thử gom tất cả block đã finalize ở từng height và xác nhận không có hai hash khác nhau. T5 kiểm tra safety, không yêu cầu mọi node phải finalize đủ block trước khi mô phỏng dừng.
 
 ---
 

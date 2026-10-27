@@ -57,6 +57,10 @@ class Node:
         self.votes = {}               # (h, r, kind) -> {voter: Vote}
         self.future = {}              # (h, r) -> proposal đầu tiên của height tương lai
         self.future_blocks = {}       # (h, block_hash) -> thân MỌI proposal hợp lệ đến sớm
+        self.bodies = {}             # block hash -> tuple of txs (locally proposed blocks)
+        self.future_headers = []     # (header, source), bounded by max_ahead
+        self.pending_headers = {}    # hash -> accepted header at current height
+        self.requested_bodies = set()
 
     # ----- tiện ích -----
     def log(self, ev, **kw):
@@ -101,8 +105,16 @@ class Node:
                 for voter in vs:
                     self.peer_round[voter] = max(self.peer_round.get(voter, -1), rr)
 
+        self.pending_headers, self.requested_bodies = {}, set()
         self.scheduled = set()
         self.start_round(max(0, self.skip_target()))
+        # Process future headers after height transition, without bypassing the network.
+        ready = [(hd, src) for hd, src in self.future_headers if hd.height == h]
+        self.future_headers = [(hd, src) for hd, src in self.future_headers if hd.height > h]
+        for hd, src in ready:
+            self.on_header(hd, src)
+        if ready:
+            self.run()
 
     def start_round(self, r):
         self.round, self.step = r, "PROPOSE"
@@ -189,7 +201,14 @@ class Node:
 
     # ----- hook gửi tin (người khác ghi đè để tạo node lỗi) -----
     def send_proposal(self, blk):
-        self.net.broadcast(self.idx, ("PROPOSAL", blk))
+        """Keep body locally; broadcast only the signed header.
+
+        The receiver decides whether to request the matching body.
+        Keep this hook overrideable for Byzantine-node tests.
+        """
+        self.bodies[blk.hash()] = blk.txs
+        self.on_proposal(blk)  # proposer must validate its own block locally
+        self.net.broadcast(self.idx, ("HEADER", blk.header))
 
     def make_vote(self, kind, target):
         v = Vote(kind, self.height, self.round, target, self.name)
@@ -199,14 +218,21 @@ class Node:
         self.net.broadcast(self.idx, ("VOTE", v))
 
     # ----- nhận thông điệp -----
-    def on_message(self, msg):
+    def on_message(self, msg, src=None):
         kind, payload = msg
-        if kind == "SYNC_REQ":   # node đã chốt xong vẫn phải phục vụ đồng bộ cho node tụt lại
+        # Even finalized nodes must serve lagging peers.
+        if kind == "SYNC_REQ":
             return self.on_sync_request(payload)
+        if kind == "REQUEST_BODY":
+            return self.on_request_body(payload, src)
         if self.done:
             return
         if kind == "PROPOSAL":
             self.on_proposal(payload)
+        elif kind == "HEADER":
+            self.on_header(payload, src)
+        elif kind == "BODY":
+            self.on_body(payload)
         elif kind == "VOTE":
             self.on_vote(payload)
         elif kind == "TX":
@@ -262,12 +288,8 @@ class Node:
             self.send_to(vals.index(req.requester), ("SYNC_RESP", SyncResp(self.name, chain_data)))
 
     def send_to(self, dst, msg):
-        """Gửi riêng cho một node. TODO(A): khi Net có send(src, dst, msg) thì chỉ còn nhánh
-        đầu; nhánh sau là cách cũ của D (đặt thẳng vào hàng đợi, không qua độ trễ của mạng)."""
-        if callable(getattr(self.net, "send", None)):
-            self.net.send(self.idx, dst, msg)
-        else:
-            self.net.push(self.net.now + 1, "MSG", dst, msg)
+        """All node-to-node traffic must pass through the network simulator."""
+        self.net.send(self.idx, dst, msg)
 
     def on_sync_response(self, resp):
         for blk, cert in resp.chain_data:
@@ -281,6 +303,12 @@ class Node:
             # header, nếu không peer có thể đảo/thay txs mà certificate vẫn khớp
             if blk.header.tx_root != tx_root(blk.txs):
                 return self.log("REJECT_SYNC", reason="bad_tx_root", height=h)
+            hd = blk.header
+            pk = self.ctx["vpks"].get(hd.proposer)
+            if (pk is None or hd.proposer != self.proposer(hd.height, hd.round)
+                    or not (-1 <= hd.pol_round < hd.round)
+                    or not verify(pk, "HEADER:" + self.ctx["chain_id"], hd.body(), hd.sig)):
+                return self.log("REJECT_SYNC", reason="invalid_header", height=h)
 
             if not set(cert.signatures) <= set(self.ctx["vals"]):
                 return self.log("REJECT_SYNC", reason="unknown_signer", height=h)
@@ -313,6 +341,57 @@ class Node:
             self.log("EQUIVOCATION", proposer=b.header.proposer,
                      height=key[0], round=key[1])
         return False
+
+    def on_header(self, hd, src):
+        if not self.in_window(hd.height, hd.round):
+            return
+        if not (-1 <= hd.pol_round < hd.round):
+            return self.log("REJECT", reason="bad_pol_round", height=hd.height)
+        pk = self.ctx["vpks"].get(hd.proposer)
+        if pk is None or not verify(pk, "HEADER:" + self.ctx["chain_id"], hd.body(), hd.sig):
+            return self.log("REJECT", reason="bad_header_sig", height=hd.height)
+        if hd.proposer != self.proposer(hd.height, hd.round):
+            return self.log("REJECT", reason="wrong_proposer", height=hd.height)
+        block_hash = Block(hd).hash()
+        if hd.height > self.height:
+            if (len(self.future_headers) < self.ctx.get("max_future_headers", 256)
+                    and not any(Block(old).hash() == block_hash for old, _ in self.future_headers)):
+                self.future_headers.append((hd, src))
+            return
+        if hd.parent != self.last_hash():
+            return self.log("REJECT", reason="bad_parent", height=hd.height)
+        self.pending_headers.setdefault(block_hash, hd)
+        if block_hash in self.requested_bodies:
+            return
+        if src is None:
+            return self.log("REJECT", reason="missing_header_source", height=hd.height)
+        self.requested_bodies.add(block_hash)
+        self.log("REQUEST_BODY", height=hd.height,
+                 block=block_hash.hex()[:8], peer=self.ctx["vals"][src])
+        self.send_to(src, ("REQUEST_BODY", block_hash))
+
+    def on_request_body(self, block_hash, src):
+        if src is None:
+            return
+        txs = self.bodies.get(block_hash)
+        if txs is None:
+            return self.log("REJECT", reason="body_not_found",
+                            block=block_hash.hex()[:8])
+        self.send_to(src, ("BODY", (block_hash, txs)))
+
+    def on_body(self, payload):
+        block_hash, txs = payload
+        hd = self.pending_headers.get(block_hash)
+        if hd is None:
+            return self.log("REJECT", reason="body_without_header",
+                            block=block_hash.hex()[:8])
+        block = Block(hd, tuple(txs))
+        if block.hash() != block_hash or hd.tx_root != tx_root(block.txs):
+            return self.log("REJECT", reason="body_header_mismatch",
+                            height=hd.height)
+        self.on_proposal(block)
+        if self.height == hd.height:
+            self.run()
 
     def on_proposal(self, b):
         hd = b.header
@@ -374,6 +453,11 @@ class Node:
             return False, err
         if s.hash() != hd.state_hash:
             return False, "bad_state_hash"
+        pk = self.ctx["vpks"].get(hd.proposer)
+        if pk is None or not verify(pk, "HEADER:" + self.ctx["chain_id"], hd.body(), hd.sig):
+            return False, "bad_header_sig"
+        if hd.proposer != self.proposer(hd.height, hd.round):
+            return False, "wrong_proposer"
         return True, ""
 
     # ----- luật prevote (luật 3, 4, 5) -----
@@ -403,7 +487,11 @@ class Node:
         v = self.make_vote(kind, target)
         self.step = kind
         self.log("VOTE", kind=kind, height=v.height, round=v.round, block=target.hex()[:8] or "NIL")
+        # Count our own signed vote even if broadcast() excludes the sender.
+        self.on_vote(v)
         self.send_vote(v)
+        if kind in ("PREVOTE", "PRECOMMIT"):
+            self.set_timeout(kind)
 
     # ----- các quy tắc chuyển bước -----
     def run(self):
@@ -443,7 +531,8 @@ class Node:
             for (hh, rr, kind), vs in sorted(self.votes.items()):
                 if hh == h and kind == "PRECOMMIT":
                     for t, c in sorted(Counter(v.block_hash for v in vs.values()).items()):
-                        if t != NIL and c >= self.Q and t in self.blocks:
+                        if (t != NIL and c >= self.Q and t in self.blocks
+                                and self.check_block(self.blocks[t])):
                             sigs = {v.voter: v.sig for v in vs.values() if v.block_hash == t}
                             cert = CommitCertificate(height=hh, round=rr, block_hash=t, signatures=sigs)
                             return self.finalize(self.blocks[t], cert)
@@ -484,4 +573,7 @@ class Node:
                  block=b.hash().hex()[:8], state=s.hash().hex()[:8])
         self.votes = {k: v for k, v in self.votes.items() if k[0] > h}
         self.future = {k: v for k, v in self.future.items() if k[0] > h}
-        self.start_height(h + 1)   # nạp future và gọi run() bên trong
+        self.future_blocks = {k: v for k, v in self.future_blocks.items() if k[0] > h}
+        self.bodies = {bh: txs for bh, txs in self.bodies.items()
+                       if bh != b.hash()}  # discard finalized proposal body
+        self.start_height(h + 1)
