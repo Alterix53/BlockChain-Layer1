@@ -16,30 +16,40 @@ from .node import Node
 
 
 def flip_byte(data: bytes) -> bytes:
-    """Đổi 1 bit ở byte đầu, giữ nguyên độ dài (dữ liệu 'gần đúng' nhưng sai)."""
+    """
+    Đảo 1 bit ở byte đầu tiên của chuỗi dữ liệu byte, giữ nguyên độ dài.
+    Mục đích: Tạo ra dữ liệu 'gần đúng' nhưng sai mật mã (chữ ký hỏng, hash sai)
+    để kiểm thử các guard thẩm định của node trung thực (Kịch bản T3).
+    """
     return bytes([data[0] ^ 1]) + data[1:]
 
 
 def short(h: bytes) -> str:
+    """Rút gọn chuỗi byte thành 8 ký tự hex (hoặc 'NIL' nếu rỗng) để in log ngắn gọn."""
     return h.hex()[:8] or "NIL"
 
 
 class ByzantineBase(Node):
-    """Phần dùng chung: tham số tấn công + các hàm tạo/gửi thông điệp.
-
-    Dùng lại hook của Node (B): make_vote, seal, send_vote, send_proposal. Ở đây chỉ mở
-    rộng send_vote/send_proposal thêm tham số dsts để gửi riêng từng nhóm; dsts=None thì
-    gọi đúng bản của Node. Khi A đổi sang HEADER/BODY chỉ phải sửa ở đây.
     """
+    Lớp cơ sở cho mọi Validator Byzantine (kế thừa từ Node).
 
+    Vai trò:
+    - Quản lý các tham số tấn công: attack_height, attack_round, groups chia rẽ mạng.
+    - Cung cấp các công cụ ký lại thông điệp (sign_header), tạo khối hợp lệ (build_block).
+    - Mở rộng hook `send_vote` và `send_proposal` để gửi riêng rẽ cho từng nhóm node (dsts).
+    """
     def __init__(self, idx, ctx, kp):
         super().__init__(idx, ctx, kp)
         self.attack_height, self.attack_round = 1, 0
-        self.groups = None  # None: gửi cho mọi node; (trái, phải): gửi riêng hai nhóm
-        self.evidence = []  # mọi thông điệp tấn công đã ký, để test/báo cáo kiểm lại
+        self.groups = None  # None: gửi cho mọi node; (left, right): chia rẽ gửi riêng cho 2 nhóm
+        self.evidence = []  # Lưu vết các thông điệp tấn công đã ký để phục vụ đối chiếu kiểm thử
 
-    # ----- cấu hình: factory gọi TRƯỚC START (start_round gọi propose() ngay) -----
     def configure(self, height=1, round=0, groups=None):
+        """
+        Cấu hình thời điểm và mục tiêu tấn công trước khi bắt đầu mô phỏng:
+        - height, round: Mốc thời gian thực hiện hành vi gian lận.
+        - groups: Cặp danh sách index validator (nhóm trái, nhóm phải) để gửi tin mâu thuẫn.
+        """
         if height < 1 or round < 0:
             raise ValueError("cần height >= 1 và round >= 0")
         self.attack_height, self.attack_round = height, round
@@ -47,6 +57,7 @@ class ByzantineBase(Node):
         return self
 
     def _check_groups(self, groups):
+        """Kiểm tra tính hợp lệ của hai nhóm phân vùng mạng (phải khác rỗng và không giao nhau)."""
         n = len(self.ctx["vals"])
         left, right = (tuple(sorted(set(g))) for g in groups)
         if not left or not right or set(left) & set(right):
@@ -56,16 +67,15 @@ class ByzantineBase(Node):
         return left, right
 
     def active(self):
+        """Kiểm tra xem node hiện tại có đang ở đúng mốc height và round tấn công hay không."""
         return (self.height, self.round) == (self.attack_height, self.attack_round)
 
-    # ----- tạo thông điệp, ký bằng khóa của chính mình -----
-    # make_vote(kind, target) dùng nguyên của Node.
     def sign_header(self, hd):
-        """Ký lại header sau khi đã sửa một trường (bản sao mới, không sửa tại chỗ)."""
+        """Ký lại tiêu đề khối Header bằng khóa bí mật của chính node sau khi đã sửa đổi nội dung."""
         return replace(hd, sig=sign(self.kp, "HEADER:" + self.ctx["chain_id"], hd.body()))
 
     def build_block(self, txs):
-        """Block HỢP LỆ (pol_round=-1) trên state hiện tại của chính node; state gốc không đổi."""
+        """Tạo một khối Block hợp lệ trên trạng thái hiện tại của node nhưng không biến đổi state gốc."""
         txs = tuple(txs)
         s, err = apply_txs(self.state, txs, self.ctx["chain_id"], self.ctx["acct_pks"])
         if err:
@@ -73,41 +83,42 @@ class ByzantineBase(Node):
         return self.seal(txs, s.hash(), -1)
 
     def first_valid_tx(self):
-        """Tx đầu tiên trong mempool áp dụng được lên state hiện tại; None nếu không có."""
+        """Tìm giao dịch đầu tiên trong mempool có thể áp dụng thành công lên state hiện tại."""
         for tx in sorted(self.mempool, key=lambda t: (t.sender, t.nonce)):
             if apply_txs(self.state, (tx,), self.ctx["chain_id"], self.ctx["acct_pks"])[1] is None:
                 return tx
         return None
 
-    # ----- gửi: luôn đi qua mạng -----
     def send_to(self, msg, dsts):
-        """Gửi riêng từng đích. Cần Net.send của A (cùng pipeline với broadcast)."""
+        """Gửi thông điệp tới một danh sách node đích cụ thể qua mạng mô phỏng."""
         if not callable(getattr(self.net, "send", None)):
             raise RuntimeError("Net chưa có send(src, dst, msg): chờ phần A")
         for dst in sorted(dsts):
             self.net.send(self.idx, dst, msg)
 
     def send_vote(self, vote, dsts=None):
+        """Phát tán phiếu bầu: nếu dsts=None thì broadcast, ngược lại gửi riêng theo nhóm."""
         if dsts is None:
             return super().send_vote(vote)
         self.send_to(("VOTE", vote), dsts)
 
     def send_proposal(self, block, dsts=None):
-        # TODO(A): khi có giao thức HEADER -> REQUEST_BODY -> BODY thì chỉ sửa ở đây
+        """Phát tán đề xuất khối: nếu dsts=None thì broadcast, ngược lại gửi riêng theo nhóm."""
         if dsts is None:
             return super().send_proposal(block)
         self.send_to(("PROPOSAL", block), dsts)
 
 
 class Silent(ByzantineBase):
-    """Im lặng.
-    mode="all": không gửi gì, không phản ứng gì (node chết ngay từ đầu).
-    mode="proposer": vẫn bỏ phiếu như honest nhưng không bao giờ đề xuất block.
-
-    Không làm bằng cách cho cast() thành pass: Node.run() gọi cast() rồi `continue`,
-    nếu self.step không đổi thì vòng while lặp vô hạn.
     """
+    Hành vi Byzantine: Im lặng / Crashed (Mục 3 đề bài & Kịch bản T6).
 
+    Chế độ hoạt động:
+    - mode="all": Node hoàn toàn im lặng, không gửi bất kỳ thông điệp nào (mô phỏng node chết hẳn).
+    - mode="proposer": Node vẫn tham gia bỏ phiếu bình thường như node honest, nhưng khi đến lượt
+      làm Proposer thì cố tình KHÔNG đề xuất block.
+      -> Mục đích: Kích hoạt đồng hồ TimeoutPropose của các node honest để kiểm tra cơ chế tăng Round (Liveness).
+    """
     def __init__(self, idx, ctx, kp):
         super().__init__(idx, ctx, kp)
         self.mode = "all"
@@ -124,26 +135,32 @@ class Silent(ByzantineBase):
             super().start()
 
     def propose(self):
+        """Bỏ qua việc đề xuất khối khi tới lượt."""
         self.log("BYZ_SKIP_PROPOSE", height=self.height, round=self.round)
 
-    def on_message(self, msg):
+    def on_message(self, msg, src=None):
+        """Chỉ tiếp nhận và phản hồi thông điệp nếu đang ở chế độ 'proposer'."""
         if self.mode == "proposer":
-            super().on_message(msg)
+            super().on_message(msg, src)
 
     def on_timeout(self, key):
+        """Chỉ xử lý timeout nếu ở chế độ 'proposer'."""
         if self.mode == "proposer":
             super().on_timeout(key)
 
 
 class EquivocateVoter(ByzantineBase):
-    """Tại slot tấn công, với mỗi phase trong `phases`: ký HAI vote khác target cho cùng
-    (height, round, phase). Ngoài slot tấn công thì bỏ phiếu như honest.
-
-    targets=None: nhóm trái nhận target mà FSM honest chọn, nhóm phải nhận NIL.
-    groups=None: phát cả hai vote cho mọi node (receiver nào nhận đủ cả hai sẽ log
-    EQUIVOCATION và chỉ đếm vote đến trước).
     """
+    Hành vi Byzantine: Bỏ phiếu hai mặt (Equivocation Voter - Kịch bản T7).
 
+    Chiến thuật tấn công:
+    Tại slot tấn công (attack_height, attack_round), với mỗi giai đoạn (PREVOTE hoặc PRECOMMIT),
+    node ký HAI phiếu bầu có nội dung mâu thuẫn nhau:
+    - Nhóm trái nhận phiếu bầu cho Block A.
+    - Nhóm phải nhận phiếu bầu cho Block B (hoặc NIL).
+    -> Mục tiêu: Cố gắng làm hai nhóm honest đạt 2 Quorum khác nhau để gây rẽ nhánh chuỗi (Fork).
+    Nhờ định lý giao điểm Quorum (Q1 ∩ Q2 >= f + 1), hệ thống honest vẫn luôn an toàn (Safety).
+    """
     def __init__(self, idx, ctx, kp):
         super().__init__(idx, ctx, kp)
         self.targets = None
@@ -165,7 +182,7 @@ class EquivocateVoter(ByzantineBase):
         if not self.active() or kind not in self.phases or key in self.signed or a == b:
             return super().cast(kind, target)
         self.signed[key] = a
-        self.step = kind  # bắt buộc, nếu không Node.run() lặp mãi ở bước cũ
+        self.step = kind
         votes = (self.make_vote(kind, a), self.make_vote(kind, b))
         self.evidence.extend(votes)
         self.log("BYZ_EQUIVOCATE_VOTE", kind=kind, height=self.height, round=self.round,
@@ -175,14 +192,16 @@ class EquivocateVoter(ByzantineBase):
 
 
 class EquivocateProposer(ByzantineBase):
-    """Khi tới lượt đề xuất ở slot tấn công: ký HAI block hợp lệ khác nhau cho cùng
-    (height, round): A rỗng, B chứa 1 tx hợp lệ. Hai block rỗng sẽ trùng hash vì
-    Block.hash() chỉ băm nội dung (height, parent, state_hash, tx_root), không băm chữ ký.
-
-    groups=None: phát A rồi B cho mọi node (độ trễ ngẫu nhiên quyết định ai thấy cái nào
-    trước); groups=(L, R): A cho L, B cho R.
     """
+    Hành vi Byzantine: Đề xuất hai mặt (Equivocation Proposer - Kịch bản T7).
 
+    Chiến thuật tấn công:
+    Khi tới lượt làm Proposer tại slot tấn công:
+    - Ký và đề xuất Block A (rỗng) gửi cho nhóm trái.
+    - Ký và đề xuất Block B (chứa 1 tx hợp lệ) gửi cho nhóm phải.
+    Hai block này đều có chữ ký hợp lệ nhưng mang nội dung và mã băm khác nhau.
+    -> Kiểm tra: Các node honest giữ đề xuất đến trước và phát hiện log EQUIVOCATION khi thấy block thứ hai.
+    """
     def propose(self):
         if not self.active():
             return super().propose()
@@ -199,17 +218,28 @@ class EquivocateProposer(ByzantineBase):
 
 
 class InvalidBlock(ByzantineBase):
-    """Khi tới lượt đề xuất ở slot tấn công: gửi block có chữ ký header ĐÚNG nhưng nội dung
-    sai đúng MỘT chỗ (mode), để kiểm từng guard trong Node.on_proposal / Node._check."""
-    # mode -> lý do node honest phải ghi khi từ chối (None: không REJECT, chỉ không prevote)
+    """
+    Hành vi Byzantine: Đề xuất khối sai quy cách (Invalid Block Proposer - Kịch bản T3).
+
+    Chiến thuật tấn công:
+    Proposer ký tiêu đề khối Header ĐÚNG bằng khóa bí mật của mình, nhưng cố tình làm sai
+    đúng một trường thông tin để kiểm tra các chốt chặn (Guards) của node honest:
+    - 'bad_parent': Parent hash sai, không nối tiếp ledger cũ.
+    - 'bad_tx_root': Merkle root trong header không khớp với băm danh sách giao dịch.
+    - 'bad_state_hash': Cam kết state_hash sai so với kết quả thực thi thực tế.
+    - 'bad_tx_sig': Đưa giao dịch có chữ ký bị lỗi/giả mạo vào block.
+    - 'replayed_tx': Đưa cùng một giao dịch 2 lần vào block (lần 2 vi phạm nonce).
+    - 'bad_pol_round': Khai man pol_round >= round hiện tại (sai quy tắc đồng thuận).
+    - 'fake_pol_round': Khai man có Polka ở round trước nhưng thực tế không có.
+    """
     EXPECTED_REASON = {
         "bad_parent": "bad_parent",
-        "bad_tx_root": "bad_tx_root",        # bị chặn ngay ở cổng on_proposal
+        "bad_tx_root": "bad_tx_root",
         "bad_state_hash": "bad_state_hash",
         "bad_tx_sig": "bad_tx_sig",
-        "replayed_tx": "bad_nonce",          # cùng 1 tx 2 lần trong block: lần 2 sai nonce
-        "bad_pol_round": "bad_pol_round",    # pol_round >= round: không thể có polka ở đó
-        "fake_pol_round": None,              # khai có polka ở round trước nhưng thật ra không có
+        "replayed_tx": "bad_nonce",
+        "bad_pol_round": "bad_pol_round",
+        "fake_pol_round": None,
     }
 
     def __init__(self, idx, ctx, kp):
@@ -242,15 +272,15 @@ class InvalidBlock(ByzantineBase):
             hd = replace(hd, state_hash=flip_byte(hd.state_hash))
         elif self.mode == "bad_tx_sig":
             txs = (replace(txs[0], sig=flip_byte(txs[0].sig)),)
-            hd = replace(hd, tx_root=tx_root(txs))  # root khớp body để lỗi rơi đúng vào tx
+            hd = replace(hd, tx_root=tx_root(txs))
         elif self.mode == "replayed_tx":
             txs = (txs[0], txs[0])
             hd = replace(hd, tx_root=tx_root(txs))
         elif self.mode == "bad_pol_round":
             hd = replace(hd, pol_round=self.round)
-        else:  # fake_pol_round: block hợp lệ, chỉ khai man bằng chứng polka
+        else:  # fake_pol_round
             hd = replace(hd, pol_round=self.round - 1)
-        bad = Block(self.sign_header(hd), txs)  # ký lại: chữ ký header vẫn hợp lệ
+        bad = Block(self.sign_header(hd), txs)
         self.evidence.append(bad)
         self.log("BYZ_INVALID_BLOCK", mode=self.mode, height=self.height, round=self.round,
                  block=short(bad.hash()))
@@ -258,15 +288,20 @@ class InvalidBlock(ByzantineBase):
 
 
 class Replay(ByzantineBase):
-    """Ghi lại thông điệp nhận được thuộc height tấn công rồi phát lại NGUYÊN VẸN (cùng
-    chữ ký) sau `delay` đơn vị thời gian ảo, tối đa `limit` thông điệp. Ngoài ra vẫn xử lý
-    như honest. Mỗi thông điệp chỉ ghi một lần nên tin phát lại quay về không bị phát tiếp."""
+    """
+    Hành vi Byzantine: Phát lại thông điệp cũ (Replay Attack - Mục 3 đề bài & Kịch bản T2).
 
+    Chiến thuật tấn công:
+    - Lắng nghe và ghi lại các thông điệp mạng (`VOTE`, `PROPOSAL`) hợp lệ ở height tấn công.
+    - Sau một khoảng thời gian ảo `delay`, phát lại NGUYÊN VẸN thông điệp đó ra mạng.
+    -> Kiểm tra: Các node honest tuân thủ Quy tắc 7 và bộ đệm mempool/seen_tx_hashes sẽ nhận diện
+       thông điệp trùng lặp và bỏ qua an toàn, không đếm 2 lần và không gây rối loạn đồng thuận.
+    """
     def __init__(self, idx, ctx, kp):
         super().__init__(idx, ctx, kp)
         self.kinds, self.delay, self.limit = ("VOTE", "PROPOSAL"), 100, 20
         self.recorded = []
-        self._seen = set()  # chỉ để hỏi "đã ghi chưa", không duyệt nên không ảnh hưởng tất định
+        self._seen = set()
 
     def configure(self, kinds=("VOTE", "PROPOSAL"), delay=100, limit=20, **base):
         if set(kinds) - {"VOTE", "PROPOSAL"} or delay < 0 or limit < 0:
@@ -278,13 +313,13 @@ class Replay(ByzantineBase):
     def msg_height(msg):
         return msg[1].header.height if msg[0] == "PROPOSAL" else msg[1].height
 
-    def on_message(self, msg):
+    def on_message(self, msg, src=None):
         if (msg[0] in self.kinds and self.msg_height(msg) == self.attack_height
                 and len(self.recorded) < self.limit and msg not in self._seen):
             self._seen.add(msg)
             self.recorded.append(msg)
             self.net.set_timeout(self.idx, self.delay, ("BYZ_REPLAY", len(self.recorded) - 1))
-        super().on_message(msg)
+        super().on_message(msg, src)
 
     def on_timeout(self, key):
         if key[0] != "BYZ_REPLAY":
@@ -296,19 +331,18 @@ class Replay(ByzantineBase):
 
 
 class Coalition:
-    """Kế hoạch chung của nhóm Byzantine (adversary được phép phối hợp với nhau)."""
-
+    """Kế hoạch phối hợp tác chiến của liên minh Byzantine."""
     def __init__(self, left, right):
         self.left, self.right = tuple(sorted(left)), tuple(sorted(right))
-        self.blocks = None  # (A, B) do thành viên là proposer tạo
+        self.blocks = None
 
 
 class ForkCoalition(ByzantineBase):
-    """Thí nghiệm ngoài giả định: cả nhóm Byzantine ký HAI phía ở slot tấn công.
-    Proposer của nhóm gửi block A cho nhóm trái, B cho nhóm phải; mọi thành viên ký
-    PREVOTE và PRECOMMIT cho A gửi trái, cho B gửi phải. Không chạy FSM honest, nên
-    chỉ hỗ trợ height 1 (không theo dõi ledger)."""
-
+    """
+    Liên minh Byzantine tấn công phá vỡ Safety (Thí nghiệm ranh giới Quorum):
+    Được thiết kế cho thí nghiệm ngoài giả định (n=9, f=3 nhưng Q=6 < 2f+1=7):
+    Cả nhóm Byzantine cùng phối hợp ký hai mặt cho cả 2 khối ở 2 phân vùng mạng để ép xảy ra FORK.
+    """
     def configure(self, coalition, **base):
         base.setdefault("groups", (coalition.left, coalition.right))
         super().configure(**base)
@@ -331,7 +365,6 @@ class ForkCoalition(ByzantineBase):
                      a=short(a.hash()), b=short(b.hash()))
             for blk, dsts in zip((a, b), self.groups):
                 self.send_proposal(blk, dsts)
-        # đợi 1 đơn vị: mọi START ở t=0 đã chạy xong nên proposer chắc chắn đã tạo A, B
         self.net.set_timeout(self.idx, 1, ("BYZ_COALITION_VOTE",))
 
     def on_timeout(self, key):
@@ -348,10 +381,11 @@ class ForkCoalition(ByzantineBase):
         self.log("BYZ_EQUIVOCATE_VOTE", kind="PREVOTE+PRECOMMIT", height=self.height,
                  round=self.round, a=short(a.hash()), b=short(b.hash()))
 
-    def on_message(self, msg):
+    def on_message(self, msg, src=None):
         return
 
 
+# Bảng tra cứu ánh xạ tên hành vi sang lớp đối tượng tương ứng
 REGISTRY = {
     "honest": Node,
     "silent": Silent,
@@ -364,7 +398,10 @@ REGISTRY = {
 
 
 def make_node(behavior, idx, ctx, kp, **params):
-    """Factory gợi ý cho E: tạo node theo tên hành vi, cấu hình xong rồi mới START."""
+    """
+    Factory Pattern: Khởi tạo validator node theo tên hành vi cấu hình trong JSON.
+    Cho phép cấu hình linh hoạt các kịch bản thử nghiệm Byzantine trước khi khởi động mạng.
+    """
     if behavior not in REGISTRY:
         raise ValueError(f"hành vi không tồn tại: {behavior!r}; có: {sorted(REGISTRY)}")
     node = REGISTRY[behavior](idx, ctx, kp)

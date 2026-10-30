@@ -3,13 +3,16 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# C extensions
+*.so
+
 # Logs
 logs/
-*.log
+logs/*.log
 
 # Archives
 *.zip
 
 .venv/
 .pytest_cache/
-logs/*.log
+.codegraph
