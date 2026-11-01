@@ -38,6 +38,8 @@ class ByzantineBase(Node):
     - Cung cấp các công cụ ký lại thông điệp (sign_header), tạo khối hợp lệ (build_block).
     - Mở rộng hook `send_vote` và `send_proposal` để gửi riêng rẽ cho từng nhóm node (dsts).
     """
+    is_byzantine = True
+
     def __init__(self, idx, ctx, kp):
         super().__init__(idx, ctx, kp)
         self.attack_height, self.attack_round = 1, 0
@@ -89,24 +91,39 @@ class ByzantineBase(Node):
                 return tx
         return None
 
-    def send_to(self, msg, dsts):
-        """Gửi thông điệp tới một danh sách node đích cụ thể qua mạng mô phỏng."""
+    def send_to(self, dst, msg=None):
+        """Gửi thông điệp tới một danh sách node đích cụ thể hoặc một node đơn lẻ.
+        Tương thích cả hai chữ ký:
+        - send_to(dst, msg) chuẩn từ Node (dst là int hoặc list/tuple các int)
+        - send_to(msg, dsts) cũ trong ByzantineBase (msg là tuple thông điệp, dsts là list/tuple int)
+        """
         if not callable(getattr(self.net, "send", None)):
             raise RuntimeError("Net chưa có send(src, dst, msg): chờ phần A")
-        for dst in sorted(dsts):
-            self.net.send(self.idx, dst, msg)
+        if isinstance(dst, (tuple, list)) and len(dst) >= 2 and isinstance(dst[0], str) and isinstance(msg, (tuple, list, set)):
+            actual_msg, actual_dsts = dst, msg
+        elif isinstance(dst, (list, tuple, set)):
+            actual_msg, actual_dsts = msg, dst
+        else:
+            actual_msg, actual_dsts = msg, [dst]
+
+        for d in sorted(actual_dsts):
+            self.net.send(self.idx, d, actual_msg)
+
+    def send_to_many(self, msg, dsts):
+        """Phương thức bổ trợ gửi cùng một thông điệp tới nhiều node đích."""
+        self.send_to(dsts, msg)
 
     def send_vote(self, vote, dsts=None):
         """Phát tán phiếu bầu: nếu dsts=None thì broadcast, ngược lại gửi riêng theo nhóm."""
         if dsts is None:
             return super().send_vote(vote)
-        self.send_to(("VOTE", vote), dsts)
+        self.send_to(dsts, ("VOTE", vote))
 
     def send_proposal(self, block, dsts=None):
         """Phát tán đề xuất khối: nếu dsts=None thì broadcast, ngược lại gửi riêng theo nhóm."""
         if dsts is None:
             return super().send_proposal(block)
-        self.send_to(("PROPOSAL", block), dsts)
+        self.send_to(dsts, ("PROPOSAL", block))
 
 
 class Silent(ByzantineBase):

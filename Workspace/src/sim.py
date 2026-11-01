@@ -29,8 +29,8 @@ class Net:
         6. Khởi tạo hàng đợi biến cố ưu tiên (heapq), đồng hồ ảo (now = 0), và lịch sử log.
         """
         self.rng = random.Random(cfg["seed"])
-        self.n = cfg["n"]
-        self.delta = cfg["delta"]
+        self.n = cfg.get("n", 10)
+        self.delta = cfg.get("delta", 20)
         self.gst = cfg.get("gst", 0)
         self.pre_gst_max_delay = cfg.get("pre_gst_max_delay", max(100, self.delta))
         self.pre_gst_drop_probability = cfg.get("pre_gst_drop_probability", 0.0)
@@ -125,18 +125,20 @@ class Net:
             return self.nodes[idx].name
         return f"V{idx}"
 
-    def push(self, t, kind, src, dst, payload):
+    def push(self, t, kind, *args):
         """
         Đẩy một biến cố mới vào hàng đợi ưu tiên (Priority Queue - heapq).
 
-        Tham số:
-        - t: Thời điểm ảo mà biến cố sẽ diễn ra.
-        - kind: Loại biến cố ('START', 'MSG', 'SEND_READY', 'UNBLOCK', 'TIMEOUT').
-        - src: Node phát sinh sự kiện (hoặc None nếu từ mạng).
-        - dst: Node thụ hưởng / xử lý sự kiện.
-        - payload: Dữ liệu đính kèm (gói tin, khóa timeout, thời gian mở khóa).
-        * Ghi chú: `self.seq` tự tăng dùng làm tiêu chí tie-break khi hai sự kiện có cùng thời điểm `t`.
+        Hỗ trợ cả 2 chữ ký tương thích ngược:
+        - 5 tham số: push(t, kind, src, dst, payload)
+        - 4 tham số: push(t, kind, dst, payload) -> mặc định src = None
         """
+        if len(args) == 3:
+            src, dst, payload = args
+        elif len(args) == 2:
+            src, (dst, payload) = None, args
+        else:
+            raise TypeError(f"push() nhận 4 hoặc 5 tham số (t, kind, [src], dst, payload), nhận {2 + len(args)}")
         self.seq += 1
         heapq.heappush(self.q, (t, self.seq, kind, src, dst, payload))
 
@@ -409,5 +411,7 @@ class Net:
                              src=self._node_name(dst))
             else:
                 self.nodes[dst].on_timeout(payload)
-            if self.nodes and all(node.done for node in self.nodes):
+            honest_nodes = [node for node in self.nodes if not getattr(node, "is_byzantine", False)]
+            target_nodes = honest_nodes if honest_nodes else self.nodes
+            if target_nodes and all(node.done for node in target_nodes):
                 break

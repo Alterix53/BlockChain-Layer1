@@ -327,7 +327,7 @@ class InjectNet(Net):
         cid = v3.ctx["chain_id"]
         base = Vote("PREVOTE", 1, 0, H(b"fake"), v3.name)
         good_sig = sign(v3.kp, "VOTE:" + cid, base.body())
-        hd = Header(height=1, round=0, pol_round=-1, parent=H(b"genesis"), state_hash=H(b"s"),
+        hd = Header(height=1, round=2, pol_round=-1, parent=H(b"genesis"), state_hash=H(b"s"),
                     tx_root=H(b"t"), proposer=v3.name)
         self.bad = [
             ("VOTE", replace(base, sig=flip_byte(good_sig))),
@@ -338,16 +338,16 @@ class InjectNet(Net):
         fake = replace(hd, tx_root=tx_root(()))  # thân khớp header: lỗi chỉ nằm ở certificate
         self.fake_block = Block(replace(fake, sig=sign(v3.kp, "HEADER:" + cid, fake.body())), ())
         bh = self.fake_block.hash()
-        own = sign(v3.kp, "VOTE:" + cid, Vote("PRECOMMIT", 1, 0, bh, v3.name).body())
+        own = sign(v3.kp, "VOTE:" + cid, Vote("PRECOMMIT", 1, 2, bh, v3.name).body())
         names = [v3.name] + [nd.name for nd in self.nodes if nd is not v3][:v3.Q - 1]
-        cert = CommitCertificate(height=1, round=0, block_hash=bh,
+        cert = CommitCertificate(height=1, round=2, block_hash=bh,
                                  signatures={name: own for name in names})
         self.fake_tx = Tx("Alice", 1, "Alice/msg", "stolen", sig=flip_byte(own))
         self.bad += [("SYNC_RESP", SyncResp(v3.name, ((self.fake_block, cert),))),
                      ("TX", self.fake_tx)]
         for msg in self.bad:
             for dst in range(len(self.nodes)):
-                self.push(1, "MSG", dst, msg)
+                self.push(1, "MSG", 3, dst, msg)
         super().run(t_end)
 
 

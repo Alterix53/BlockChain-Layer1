@@ -16,3 +16,4 @@ logs/*.log
 .venv/
 .pytest_cache/
 .codegraph
+.agents/
