@@ -36,7 +36,7 @@ class IsolateNet(Net):
         h = msg[1].header.height if msg[0] == "PROPOSAL" else getattr(msg[1], "height", 0)
         self.log(self.nodes[src].name, "SEND", type=msg[0], height=h)
         for dst in range(len(self.nodes)):
-            self.push(self.now + self._delay(src, dst), "MSG", dst, msg)
+            self.push(self.now + self._delay(src, dst), "MSG", src, dst, msg)
 
 
 class TestSyncCatchUpNetwork(unittest.TestCase):

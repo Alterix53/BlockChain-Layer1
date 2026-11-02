@@ -59,22 +59,26 @@ class PartitionNet(Net):
 
     @staticmethod
     def _height(msg):
-        return msg[1].header.height if msg[0] == "PROPOSAL" else msg[1].height
+        if msg[0] == "PROPOSAL":
+            return msg[1].header.height
+        elif msg[0] == "HEADER":
+            return msg[1].height
+        return getattr(msg[1], "height", 0)
 
     def broadcast(self, src, msg):
         self.log(self.nodes[src].name, "SEND", type=msg[0], height=self._height(msg))
         for dst in range(len(self.nodes)):
-            self.push(self.now + self._delay(src, dst), "MSG", dst, msg)
+            self.push(self.now + self._delay(src, dst), "MSG", src, dst, msg)
 
     def send(self, src, dst, msg):
         self.log(self.nodes[src].name, "SEND", type=msg[0], height=self._height(msg),
                  dst=self.nodes[dst].name)
-        self.push(self.now + self._delay(src, dst), "MSG", dst, msg)
+        self.push(self.now + self._delay(src, dst), "MSG", src, dst, msg)
 
 
 def run_experiment(n, q, right, f=3, seed=7, gst=5000):
     side = {i: "L" for i in LEFT} | {i: "R" for i in right}
-    net = PartitionNet(dict(seed=seed, delta=20, gst=gst), side)
+    net = PartitionNet(dict(n=n, seed=seed, delta=20, gst=gst), side)
     vals = [f"V{i}" for i in range(n)]
     vkps = [KeyPair(f"val-{seed}-{i}".encode()) for i in range(n)]
     alice = KeyPair(f"acct-{seed}-Alice".encode())

@@ -82,6 +82,11 @@ def make_nodes(n=10, f=3, q=None, behaviors=None, start=True):
         for nd in nodes:
             nd.start()
         net.clear()  # bỏ các lời gọi lúc khởi động để mỗi test chỉ thấy phần của mình
+        if behaviors:
+            for b_idx in behaviors:
+                nodes[b_idx].signed.clear()
+                if hasattr(nodes[b_idx], "evidence"):
+                    nodes[b_idx].evidence.clear()
     return nodes, net
 
 

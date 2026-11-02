@@ -34,6 +34,8 @@ class Node:
     """
     Đại diện cho một Validator Node chạy giao thức đồng thuận Tendermint BFT.
     """
+    is_byzantine = False
+
     def __init__(self, idx, ctx, kp):
         """
         Khởi tạo trạng thái nội bộ của validator:
@@ -447,12 +449,24 @@ class Node:
             return
         if hd.parent != self.last_hash():
             return self.log("REJECT", reason="bad_parent", height=hd.height)
-        self.pending_headers.setdefault(block_hash, hd)
-        if block_hash in self.requested_bodies:
+        self.pending_headers[block_hash] = hd
+        if block_hash in self.blocks:
+            blk = Block(hd, self.blocks[block_hash].txs)
+            self.on_proposal(blk)
+            if self.height == hd.height:
+                self.run()
+            return
+        if block_hash in self.bodies:
+            blk = Block(hd, self.bodies[block_hash])
+            self.on_proposal(blk)
+            if self.height == hd.height:
+                self.run()
+            return
+        if (block_hash, hd.round) in self.requested_bodies:
             return
         if src is None:
             return self.log("REJECT", reason="missing_header_source", height=hd.height)
-        self.requested_bodies.add(block_hash)
+        self.requested_bodies.add((block_hash, hd.round))
         self.log("REQUEST_BODY", height=hd.height,
                  block=block_hash.hex()[:8], peer=self.ctx["vals"][src])
         self.send_to(src, ("REQUEST_BODY", block_hash))
@@ -475,12 +489,16 @@ class Node:
         3. Chuyển tiếp vào hàm `on_proposal` để xử lý bỏ phiếu.
         """
         block_hash, txs = payload
+        self.bodies[block_hash] = tuple(txs)
         hd = self.pending_headers.get(block_hash)
         if hd is None:
             return self.log("REJECT", reason="body_without_header",
                             block=block_hash.hex()[:8])
         block = Block(hd, tuple(txs))
-        if block.hash() != block_hash or hd.tx_root != tx_root(block.txs):
+        if hd.tx_root != tx_root(block.txs):
+            return self.log("REJECT", reason="bad_tx_root",
+                            height=hd.height)
+        if block.hash() != block_hash:
             return self.log("REJECT", reason="body_header_mismatch",
                             height=hd.height)
         self.on_proposal(block)
@@ -501,6 +519,7 @@ class Node:
             return self.log("REJECT", reason="bad_pol_round", height=hd.height)
         if hd.tx_root != tx_root(b.txs):
             return self.log("REJECT", reason="bad_tx_root", height=hd.height)
+        self.check_block(b)
         if hd.height == self.height:
             self.keep_first(self.proposals, b)
             self.blocks.setdefault(b.hash(), b)

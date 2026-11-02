@@ -162,7 +162,7 @@ class TestEquivocateProposer(unittest.TestCase):
         nodes, net = make_nodes(behaviors={1: (EquivocateProposer, {})}, start=False)
         nodes[1].mempool = []
         start_all(nodes)
-        proposals = [m for _, m in sent_by(net, 1) if m[0] == "PROPOSAL"]
+        proposals = [m for _, m in sent_by(net, 1) if m[0] in ("PROPOSAL", "HEADER")]
         self.assertEqual(len(proposals), 1)
         self.assertEqual(len(events(net, "BYZ_SKIP", node="V1", reason="no_valid_tx")), 1)
 
@@ -226,12 +226,14 @@ class TestInvalidBlock(unittest.TestCase):
                 prop, receiver = nodes[1], nodes[0]
                 before = receiver.state.hash()
                 start_all(nodes)
-                (_, msg), = sent_by(net, 1)
+                proposals = [m for _, m in sent_by(net, 1) if m[0] in ("PROPOSAL", "HEADER")]
+                self.assertTrue(proposals)
+                msg = proposals[0]
                 net.clear()
-                hd = msg[1].header
+                hd = msg[1] if hasattr(msg[1], "body") else msg[1].header
                 self.assertTrue(verify(prop.kp.pk, "HEADER:" + CHAIN, hd.body(), hd.sig),
                                 "chữ ký header phải đúng: lỗi chỉ nằm ở nội dung")
-                receiver.on_message(msg)
+                receiver.on_message(("PROPOSAL", prop.evidence[-1]))
                 self.assertEqual(len(events(net, "REJECT", node="V0", reason=reason)), 1)
                 # bad_tx_root/bad_pol_round bị chặn ngay ở cổng on_proposal nên chưa prevote gì;
                 # các lỗi còn lại prevote NIL ngay. Hết giờ PROPOSE thì mọi trường hợp đều là NIL.
@@ -247,11 +249,12 @@ class TestInvalidBlock(unittest.TestCase):
         receiver, attacker = nodes[0], nodes[2]
         for nd in (receiver, attacker):
             nd.start_round(1)
-        (_, msg), = [x for x in sent_by(net, 2) if x[1][0] == "PROPOSAL"]
-        blk = msg[1]
+        proposals = [x for x in sent_by(net, 2) if x[1][0] in ("PROPOSAL", "HEADER")]
+        self.assertTrue(proposals)
+        blk = attacker.evidence[-1]
         self.assertEqual((blk.header.round, blk.header.pol_round), (1, 0))
         self.assertEqual(receiver._check(blk), (True, ""), "nội dung block hợp lệ")
-        receiver.on_message(msg)
+        receiver.on_message(("PROPOSAL", blk))
         self.assertNotIn((1, 1, "PREVOTE"), receiver.signed, "chưa tự thấy polka thì phải chờ")
         receiver.on_timeout(("PROPOSE", 1, 1))
         self.assertEqual(receiver.signed[(1, 1, "PREVOTE")], NIL)
