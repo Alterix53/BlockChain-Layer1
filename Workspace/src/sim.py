@@ -1,8 +1,10 @@
 """Mạng mô phỏng: đồng hồ ảo, hàng đợi sự kiện và lỗi mạng có seed."""
 import heapq
 import random
+from collections import deque
+from copy import deepcopy
 
-from .common import H, encode
+from .common import Block
 
 
 class Net:
@@ -102,8 +104,10 @@ class Net:
         self.nodes, self.logs = [], []            # Danh sách các validator node và nhật ký sự kiện
         self.block_heights = {}                   # Bộ đệm ánh xạ block_hash -> height phục vụ ghi log
         self.send_times = {}                      # Lưu lịch sử mốc thời gian gửi tin (phục vụ Outbound Rate Limit)
+        self.peer_send_times = {}                 # Receiver admission/backpressure, before SEND
         self.receive_times = {}                   # Lưu lịch sử mốc thời gian nhận tin (phục vụ Inbound Peer Throttling)
         self.blocked_peers = {}                   # Bảng theo dõi các peer đang bị tạm khóa: (dst, src) -> unblock_time
+        self.block_context = {}
 
     def log(self, node, ev, **kw):
         """
@@ -140,7 +144,95 @@ class Net:
         else:
             raise TypeError(f"push() nhận 4 hoặc 5 tham số (t, kind, [src], dst, payload), nhận {2 + len(args)}")
         self.seq += 1
+        # Each delivery owns a separate object graph, including certificate maps.
+        if kind in ("MSG", "SEND_READY"):
+            payload = deepcopy(payload)
         heapq.heappush(self.q, (t, self.seq, kind, src, dst, payload))
+
+    @staticmethod
+    def _unwrap(msg):
+        while msg[0] == "ROUTE":
+            msg = msg[1][2]
+        return msg
+
+    def _route(self, src, dst):
+        queue = deque([(src,)])
+        seen = {src}
+        while queue:
+            path = queue.popleft()
+            for peer in sorted(self.peers[path[-1]]):
+                if peer == dst:
+                    return path + (peer,)
+                if peer not in seen:
+                    seen.add(peer)
+                    queue.append(path + (peer,))
+        raise ValueError(f"không có đường truyền giữa node {src} và {dst}")
+
+    def _deliver(self, src, dst, msg):
+        if msg[0] != "ROUTE":
+            self.nodes[dst].on_message(msg, src)
+            return
+        origin, target, inner, remaining = msg[1][:4]
+        if dst == target:
+            self.nodes[dst].on_message(inner, origin)
+        else:
+            if len(msg[1]) == 5:
+                plan = msg[1][4]
+                self._transmit(dst, remaining[0],
+                               ("ROUTE", (origin, target, inner, remaining[1:], plan[1:])))
+            else:
+                self.send(dst, remaining[0], ("ROUTE", (origin, target, inner, remaining[1:])))
+
+    def _send_routed(self, path, msg):
+        """Reserve the whole path BEFORE the first SEND, within one global delta.
+
+        Hop delays are sampled once. Relays use reserved egress slots rather
+        than placing a transmitted message in another unbounded local queue.
+        """
+        budget = self.delta
+        delays, offsets, reservations = [], [], []
+        offset = 0
+        for i, (src, dst) in enumerate(zip(path, path[1:])):
+            hops_left = len(path) - i - 1
+            cap = budget // hops_left
+            budget -= cap
+            bound = min(cap, self.link_delays.get(frozenset((src, dst)), self.delta))
+            delays.append(self.rng.randint(0, bound))
+            offsets.append(offset)
+            offset += delays[-1]
+            budgets = []
+            if self.rate_limit is not None:
+                budgets.append((self.send_times, src, self.rate_limit["max_messages"],
+                                self.rate_limit["window"]))
+            if self.peer_block is not None:
+                budgets.append((self.peer_send_times, (src, dst), self.peer_block["max_messages"],
+                                self.peer_block["window"] + 2 * self.delta))
+            reservations.append(budgets)
+        start = self.now
+        while True:
+            previous = start
+            for offset, budgets in zip(offsets, reservations):
+                for history, key, limit, window in budgets:
+                    history[key] = [t for t in history.get(key, []) if t > self.now - window]
+                    while True:
+                        active = sorted(t for t in history[key] if start + offset - window < t <= start + offset)
+                        if len(active) < limit:
+                            break
+                        start = max(start, active[0] + window - offset)
+            if start == previous:
+                break
+        for offset, budgets in zip(offsets, reservations):
+            for history, key, _, _ in budgets:
+                history.setdefault(key, []).append(start + offset)
+                history[key].sort()
+        routed = ("ROUTE", (path[0], path[-1], msg, path[2:], tuple(delays)))
+        if start > self.now:
+            self.log(self._node_name(path[0]), "DELAY", dst=self._node_name(path[-1]),
+                     type=self._unwrap(msg)[0], height=self._message_height(msg),
+                     reason="route_admission", until=start)
+            self.push(start, "SEND_READY", path[0], path[1], routed)
+        else:
+            self._transmit(path[0], path[1], routed)
 
     def _message_height(self, msg):
         """
@@ -148,7 +240,7 @@ class Net:
         Hỗ trợ nhiều loại tin: PROPOSAL, HEADER, VOTE, BODY, REQUEST_BODY.
         Mục đích: Đính kèm `height` vào các bản ghi log mạng (SEND, DROP, DELAY, ...) theo chuẩn Mục 6.
         """
-        kind, payload = msg
+        kind, payload = self._unwrap(msg)
         if kind == "PROPOSAL":
             header = payload.header
         elif kind == "HEADER":
@@ -157,14 +249,24 @@ class Net:
             return payload.height
         elif kind == "BODY":
             block_hash, _ = payload
-            return self.block_heights.get(block_hash)
+            return self.block_heights.get(block_hash, 0)
         elif kind == "REQUEST_BODY":
-            return self.block_heights.get(payload)
+            return self.block_heights.get(payload, 0)
+        elif kind == "POLKA":
+            return payload[0].height if payload else 0
+        elif kind == "SYNC_HEADERS":
+            for hd, _ in payload:
+                self.block_heights[Block(hd).hash()] = hd.height
+            return payload[0][0].height if payload else 0
+        elif kind == "SYNC_REQ":
+            return payload.from_height
+        elif kind == "SYNC_RESP":
+            return payload.chain_data[0][0].header.height if payload.chain_data else 0
         else:
-            return None
+            return getattr(payload, "height", 0)
 
         # Lưu lại height tương ứng với block_hash để tra cứu khi nhận gói BODY/REQUEST_BODY
-        block_hash = H(encode(header.body()))
+        block_hash = Block(header).hash()
         self.block_heights[block_hash] = header.height
         return header.height
 
@@ -179,7 +281,9 @@ class Net:
         3. Ghi log sự kiện `LOCAL_DELIVERY`.
         """
         height = self._message_height(msg)
-        for dst in sorted(self.peers[src]):
+        for dst in range(self.n):
+            if dst == src:
+                continue
             self.send(src, dst, msg)
         self.push(self.now, "MSG", src, src, msg)
         self.log(self._node_name(src), "LOCAL_DELIVERY", type=msg[0],
@@ -200,25 +304,30 @@ class Net:
         if not (0 <= src < self.n and 0 <= dst < self.n):
             raise ValueError(f"node gửi/nhận ngoài phạm vi: {src}, {dst}")
         if src != dst and dst not in self.peers[src]:
-            raise ValueError(f"không có kết nối giữa node {src} và {dst}")
+            path = self._route(src, dst)
+            if self.now >= self.gst:
+                self._send_routed(path, msg)
+                return
+            msg = ("ROUTE", (src, dst, msg, path[2:]))
+            dst = path[1]
         height = self._message_height(msg)
         if src == dst:
             self.log(self._node_name(src), "SEND", dst=self._node_name(dst),
-                     type=msg[0], height=height, local=True)
+                     type=self._unwrap(msg)[0], height=height, local=True)
             self.push(self.now, "MSG", src, dst, msg)
             return
 
         # Kiểm tra Outbound Rate Limiting
-        send_at = self._reserve_send_time(src, dst)
+        send_at = self._reserve_send_time(src, dst, msg)
         if send_at > self.now:
             self.log(self._node_name(src), "DELAY", dst=self._node_name(dst),
-                     type=msg[0], height=height, reason="rate_limit",
+                     type=self._unwrap(msg)[0], height=height, reason="rate_limit",
                      until=send_at)
             self.push(send_at, "SEND_READY", src, dst, msg)
             return
         self._transmit(src, dst, msg)
 
-    def _reserve_send_time(self, src, dst):
+    def _reserve_send_time(self, src, dst, msg=None):
         """
         Thuật toán cửa sổ trượt (Sliding Window) để quản lý giới hạn tốc độ gửi (Outbound Rate Limit).
 
@@ -229,22 +338,42 @@ class Net:
            tổng số gói gửi không vượt quá `max_messages`.
         4. Ghi nhận `candidate` vào lịch sử gửi và trả về thời điểm được phép gửi tin.
         """
-        if self.rate_limit is None:
+        if self.rate_limit is None and self.peer_block is None:
             return self.now
-
-        limit = self.rate_limit["max_messages"]
-        window = self.rate_limit["window"]
-        key = (src, dst)
-        times = [t for t in self.send_times.get(key, [])
-                 if t > self.now - window]
+        budgets = []
+        if self.rate_limit is not None:
+            budgets.append((self.send_times, src, self.rate_limit["max_messages"],
+                            self.rate_limit["window"]))
+        if self.peer_block is not None:
+            # Reserve receiver capacity before transmission. Propagation jitter
+            # is included so honest frames need not be dropped after GST.
+            budgets.append((self.peer_send_times, (src, dst), self.peer_block["max_messages"],
+                            self.peer_block["window"] + 2 * self.delta))
         candidate = self.now
+        peer_limited = False
         while True:
-            active = sorted(t for t in times if candidate - window < t <= candidate)
-            if len(active) < limit:
+            previous = candidate
+            for history, key, limit, window in budgets:
+                history[key] = [t for t in history.get(key, []) if t > self.now - window]
+                active = sorted(t for t in history[key] if candidate - window < t <= candidate)
+                if len(active) >= limit:
+                    if history is self.peer_send_times:
+                        peer_limited = True
+                    candidate = max(candidate, active[0] + window)
+            if candidate == previous:
                 break
-            candidate = active[0] + window
-        times.append(candidate)
-        self.send_times[key] = sorted(times)
+        for history, key, _, _ in budgets:
+            history.setdefault(key, []).append(candidate)
+            history[key].sort()
+        if self.peer_block is not None and peer_limited and candidate > self.now:
+            key = (dst, src)
+            until = max(candidate, self.blocked_peers.get(key, 0))
+            self.blocked_peers[key] = until
+            self.block_context[key] = dict(type=self._unwrap(msg)[0] if msg else "FLOW_CONTROL",
+                                           height=self._message_height(msg) if msg else 0)
+            self.log(self._node_name(dst), "BLOCK", src=self._node_name(src),
+                     until=until, reason="admission_backpressure", **self.block_context[key])
+            self.push(until, "UNBLOCK", dst, src, until)
         return candidate
 
     def _transmit(self, src, dst, msg):
@@ -261,27 +390,35 @@ class Net:
         4. Tính toán độ trễ mạng ngẫu nhiên (`_delivery_delay`) cho từng bản sao.
         5. Ghi log `DELAY` (nếu có độ trễ) và đưa sự kiện `MSG` vào hàng đợi với mốc đến: `self.now + delay`.
         """
+        if (self.now >= self.gst and msg[0] == "ROUTE" and len(msg[1]) == 4
+                and src == msg[1][0]):
+            origin, target, inner, remaining = msg[1]
+            self._send_routed((src, dst) + tuple(remaining), inner)
+            return
         height = self._message_height(msg)
         self.log(self._node_name(src), "SEND", dst=self._node_name(dst),
-                 type=msg[0], height=height)
+                 type=self._unwrap(msg)[0], height=height)
 
         # Mô phỏng lỗi rơi gói trước mốc GST (Global Stabilization Time)
         before_gst = self.now < self.gst
         if before_gst and self.rng.random() < self.pre_gst_drop_probability:
             self.log(self._node_name(src), "DROP", dst=self._node_name(dst),
-                     type=msg[0], height=height, reason="pre_gst")
+                     type=self._unwrap(msg)[0], height=height, reason="pre_gst")
             return
 
         # Mô phỏng lỗi nhân bản gói tin
         copies = 2 if self.rng.random() < self.duplicate_probability else 1
         if copies > 1:
             self.log(self._node_name(src), "DUPLICATE", dst=self._node_name(dst),
-                     type=msg[0], height=height, copies=copies)
+                     type=self._unwrap(msg)[0], height=height, copies=copies)
         for _ in range(copies):
-            delay, reordered = self._delivery_delay(src, dst, before_gst)
+            if msg[0] == "ROUTE" and len(msg[1]) == 5:
+                delay, reordered = msg[1][4][0], False
+            else:
+                delay, reordered = self._delivery_delay(src, dst, before_gst)
             if delay:
                 self.log(self._node_name(src), "DELAY", dst=self._node_name(dst),
-                         type=msg[0], height=height, delay=delay,
+                         type=self._unwrap(msg)[0], height=height, delay=delay,
                          reason="reorder" if reordered else "network")
             self.push(self.now + delay, "MSG", src, dst, msg)
 
@@ -329,18 +466,31 @@ class Net:
         4. Nếu mọi kiểm tra đều đạt: chuyển giao gói tin tới `node.on_message(msg, src)` để xử lý đồng thuận.
         """
         if src == dst:
-            self.nodes[dst].on_message(msg, src)
+            self._deliver(src, dst, msg)
             return
 
         height = self._message_height(msg)
         src_name = self._node_name(src)
         dst_name = self._node_name(dst)
 
+        # Receiver capacity was reserved by send(), before the SEND timestamp.
+        # Once transmitted after GST, a frame arrives within the link bound;
+        # no receive-side drop or extra delay may invalidate that guarantee.
+        if self.now >= self.gst:
+            self.log(dst_name, "RECEIVE", src=src_name, type=self._unwrap(msg)[0], height=height)
+            self._deliver(src, dst, msg)
+            return
+
         # Kiểm tra xem peer gửi có đang bị chặn hay không
         blocked_until = self.blocked_peers.get((dst, src))
         if blocked_until is not None and self.now < blocked_until:
-            self.log(dst_name, "DROP", src=src_name, type=msg[0],
-                     height=height, reason="peer_blocked")
+            if self.now >= self.gst:
+                self.log(dst_name, "DELAY", src=src_name, type=self._unwrap(msg)[0],
+                         height=height, reason="peer_blocked", until=blocked_until)
+                self.push(blocked_until, "MSG", src, dst, msg)
+            else:
+                self.log(dst_name, "DROP", src=src_name, type=self._unwrap(msg)[0],
+                         height=height, reason="peer_blocked")
             return
 
         # Kiểm tra tần suất nhận tin từ peer (Inbound Peer Throttling)
@@ -352,10 +502,17 @@ class Net:
             if len(times) >= self.peer_block["max_messages"]:
                 until = self.now + self.peer_block["duration"]
                 self.blocked_peers[key] = until
+                self.block_context[key] = dict(type=self._unwrap(msg)[0], height=height)
                 self.log(dst_name, "BLOCK", src=src_name, until=until,
-                         reason="peer_rate_limit")
-                self.log(dst_name, "DROP", src=src_name, type=msg[0],
-                         height=height, reason="peer_rate_limit")
+                         reason="peer_rate_limit", **self.block_context[key])
+                if self.now >= self.gst:
+                    retry = max(until, times[0] + window)
+                    self.log(dst_name, "DELAY", src=src_name, type=self._unwrap(msg)[0],
+                             height=height, reason="peer_rate_limit", until=retry)
+                    self.push(retry, "MSG", src, dst, msg)
+                else:
+                    self.log(dst_name, "DROP", src=src_name, type=self._unwrap(msg)[0],
+                             height=height, reason="peer_rate_limit")
                 self.push(until, "UNBLOCK", dst, src, until)
                 self.receive_times[key] = times
                 return
@@ -363,7 +520,8 @@ class Net:
             self.receive_times[key] = times
 
         # Chuyển giao thông điệp vào tầng ứng dụng của validator
-        self.nodes[dst].on_message(msg, src)
+        self.log(dst_name, "RECEIVE", src=src_name, type=self._unwrap(msg)[0], height=height)
+        self._deliver(src, dst, msg)
 
     def set_timeout(self, idx, delay, key):
         """
@@ -408,7 +566,7 @@ class Net:
                 if self.blocked_peers.get((src, dst)) == payload:
                     del self.blocked_peers[(src, dst)]
                     self.log(self._node_name(src), "UNBLOCK",
-                             src=self._node_name(dst))
+                             src=self._node_name(dst), **self.block_context.pop((src, dst), {}))
             else:
                 self.nodes[dst].on_timeout(payload)
             honest_nodes = [node for node in self.nodes if not getattr(node, "is_byzantine", False)]

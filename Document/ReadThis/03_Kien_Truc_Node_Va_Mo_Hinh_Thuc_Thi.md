@@ -70,8 +70,9 @@ class Block:
     txs: tuple = ()   # Tuple danh sách các giao dịch (đảm bảo thứ tự)
 
     def hash(self) -> bytes:
-        # Băm của Block chính là băm của Header body
-        return H(encode(self.header.body()))
+        # Định danh nội dung giữ nguyên khi cùng block được repropose ở round khác.
+        h = self.header
+        return H(encode([h.height, h.parent, h.state_hash, h.tx_root]))
 ```
 
 ### 2.4. Vote (`Vote`)

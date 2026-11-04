@@ -1,4 +1,8 @@
 # HỒ SƠ THỰC HIỆN TOÀN BỘ QUÁ TRÌNH XÂY DỰNG HỆ THỐNG BLOCKCHAIN LAYER 1
+
+> Đây là hồ sơ lịch sử trước đợt sửa code/testing. Các bảng PASS bên dưới không phải
+> kết quả kiểm định checkout hiện tại. Xem IMPLEMENTATION.md và chạy entry point test
+> trong README; luồng hiện hành có POLKA proof và SYNC_HEADERS trước khi tải BODY.
 ## Dự án: Minimal Layer 1 Blockchain với Thuật toán Đồng thuận Tendermint BFT & Mô phỏng DES
 
 ---
@@ -145,13 +149,13 @@ Mã nguồn cung cấp đầy đủ 5 dạng hành vi Byzantine để thách th�
 
 | Mã Test | Tên Kịch Bản | Trọng Tâm Xác Minh | Hành Vi & Kết Quả Đạt Được | Trạng Thái |
 | :---: | :--- | :--- | :--- | :---: |
-| **T1** | **Normal Run, No Faults** | Mạng hoạt động lý tưởng, không có lỗi mạng hay node gian lận. | Tất cả 8 node hoàn thành đủ 5 block (`heights = 5`). Mọi block chốt ở Round 0. Toàn bộ các node đạt cùng một `state_hash` cuối cùng (`0b837be9...`). | **ĐẠT (PASS)** |
+| **T1** | **Normal Run, No Faults** | Mạng hoạt động lý tưởng, không có lỗi mạng hay node gian lận. | Tất cả 10 node hoàn thành đủ 5 block (`heights = 5`). Mọi block chốt ở Round 0. Toàn bộ các node đạt cùng một `state_hash` cuối cùng (`0b837be9...`). | **ĐẠT (PASS)** |
 | **T2** | **Duplicate & Reordered Messages** | Thông điệp bị nhân bản gửi lại nhiều lần và tráo đổi thứ tự đến. | Nhờ **Quy tắc 7** và hàng đợi mempool khử trùng lặp trong $O(1)$, các phiếu trùng bị loại bỏ, không bao giờ đếm 2 lần. Không xảy ra phân nhánh. | **ĐẠT (PASS)** |
 | **T3** | **Invalid Signature & Wrong Domain** | Kẻ tấn công gửi thông điệp có chữ ký giả mạo hoặc sai ngữ cảnh domain. | Hàm `verify()` trả về `False`. Node ghi log `REJECT reason=bad_header_sig`, `bad_vote_sig`, hoặc `bad_tx_sig`. Thông điệp lỗi bị hủy ngay tại cổng vào. | **ĐẠT (PASS)** |
 | **T4** | **Replayed / Duplicate Transaction** | Kẻ tấn công phát lại một giao dịch hợp lệ cũ của Alice nhiều lần. | Nhờ cơ chế kiểm soát `nonce == current_nonce + 1`, giao dịch phát lại bị từ chối dứt điểm với mã `bad_nonce`. Nonce của Alice chỉ tăng đúng 1 lần. | **ĐẠT (PASS)** |
 | **T5** | **Drop & Delay Before Synchrony** | Mất gói tin và độ trễ cực lớn trước thời điểm ổn định $GST$. | Tính **Safety** được bảo toàn 100%: Tuyệt đối không có 2 block khác nhau được chốt ở cùng một height. Mạng có thể timeout tăng round nhưng không fork. | **ĐẠT (PASS)** |
 | **T6** | **Proposer Silent / Crashed** | Proposer ở round 0 bị sập nguồn hoặc giữ im lặng không gửi đề xuất. | Đồng hồ `TimeoutPropose` kích hoạt, các validator bầu `PREVOTE NIL` $\to$ `PRECOMMIT NIL` $\to$ chuyển sang Round 1 $\to$ Proposer mới chốt block thành công. | **ĐẠT (PASS)** |
-| **T7** | **Up to $f$ Byzantine Equivocate** | Tối đa $f$ ($f=2$ với $n=8$) validator gian lận bỏ phiếu hai mặt cho 2 nhóm. | Nhờ định lý giao điểm Quorum ($|Q_1 \cap Q_2| \ge f + 1$), luôn có ít nhất 1 node trung thực ở giao điểm chặn đứng việc chốt 2 block khác nhau. | **ĐẠT (PASS)** |
+| **T7** | **Up to $f$ Byzantine Equivocate** | Tối đa $f$ ($f=3$ với $n=10$) validator gian lận bỏ phiếu hai mặt cho 2 nhóm. | Nhờ định lý giao điểm Quorum ($|Q_1 \cap Q_2| \ge f + 1$), luôn có ít nhất 1 node trung thực ở giao điểm chặn đứng việc chốt 2 block khác nhau. | **ĐẠT (PASS)** |
 | **T8** | **Same Seed Rerun Twice** | Chạy mô phỏng lại 2 lần liên tiếp với cùng một tệp cấu hình JSON. | So sánh chuỗi log hệ thống và mã băm trạng thái cuối: Khớp nhau $100\%$ từng byte (`Byte-identical logs & final state hash: True`). | **ĐẠT (PASS)** |
 
 ---

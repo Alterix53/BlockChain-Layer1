@@ -1,5 +1,12 @@
 """State key-value + thực thi giao dịch tất định."""
-from .common import H, encode, verify
+from .common import H, Tx, encode, verify
+
+
+def valid_tx_fields(tx):
+    return (isinstance(tx, Tx) and isinstance(tx.sender, str)
+            and isinstance(tx.key, str) and isinstance(tx.value, str)
+            and isinstance(tx.sig, bytes) and type(tx.nonce) is int
+            and 0 < tx.nonce < 2**63)
 
 
 class State:
@@ -55,12 +62,14 @@ def apply_tx(state: State, tx, chain_id: str, acct_pks: dict):
     - Nếu hợp lệ: Cập nhật state.data và state.nonces, trả về None.
     - Nếu vi phạm: Trả về chuỗi mã lỗi tương ứng.
     """
+    if not valid_tx_fields(tx):
+        return "bad_tx_format"
     pk = acct_pks.get(tx.sender)
     if pk is None:
         return "unknown_sender"
     if not verify(pk, "TX:" + chain_id, tx.body(), tx.sig):
         return "bad_tx_sig"
-    if not tx.key.startswith(tx.sender + "/"):
+    if "/" in tx.sender or tx.key.partition("/")[0] != tx.sender:
         return "not_owner"
     if tx.nonce != state.nonces.get(tx.sender, 0) + 1:
         return "bad_nonce"

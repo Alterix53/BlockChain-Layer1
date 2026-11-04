@@ -41,39 +41,21 @@ RIGHT_N10 = (4, 5, 6, 9)
 
 
 class PartitionNet(Net):
-    """TẠM thay cho send(src, dst, msg) (và GST) của phần A. Xóa khi A merge.
-    Trước GST: tin giữa hai nhóm honest bị giữ tới sau GST (adversary điều khiển lịch mạng,
-    đúng giả định partial synchrony). Tin còn lại và mọi tin sau GST: trễ 1..delta.
-    gst=0 nghĩa là không chia cắt gì cả."""
+    """Keep the production pipeline; hold cross-partition transmissions until GST."""
 
     def __init__(self, cfg, side):
         super().__init__(cfg)
         self.gst, self.side = cfg["gst"], side  # side: idx -> "L" / "R" (Byzantine: không có)
 
-    def _delay(self, src, dst):
-        d = self.rng.randint(1, self.delta)
+    def _transmit(self, src, dst, msg):
         a, b = self.side.get(src), self.side.get(dst)
         if self.now < self.gst and a and b and a != b:
-            return self.gst - self.now + d
-        return d
-
-    @staticmethod
-    def _height(msg):
-        if msg[0] == "PROPOSAL":
-            return msg[1].header.height
-        elif msg[0] == "HEADER":
-            return msg[1].height
-        return getattr(msg[1], "height", 0)
-
-    def broadcast(self, src, msg):
-        self.log(self.nodes[src].name, "SEND", type=msg[0], height=self._height(msg))
-        for dst in range(len(self.nodes)):
-            self.push(self.now + self._delay(src, dst), "MSG", src, dst, msg)
-
-    def send(self, src, dst, msg):
-        self.log(self.nodes[src].name, "SEND", type=msg[0], height=self._height(msg),
-                 dst=self.nodes[dst].name)
-        self.push(self.now + self._delay(src, dst), "MSG", src, dst, msg)
+            self.log(self.nodes[src].name, "DELAY", type=self._unwrap(msg)[0],
+                     height=self._message_height(msg), dst=self.nodes[dst].name,
+                     reason="test_partition", until=self.gst)
+            self.push(self.gst, "SEND_READY", src, dst, msg)
+            return
+        super()._transmit(src, dst, msg)
 
 
 def run_experiment(n, q, right, f=3, seed=7, gst=5000):

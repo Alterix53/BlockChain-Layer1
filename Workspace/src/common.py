@@ -93,7 +93,7 @@ def verify(pk: bytes, domain: str, body, sig: bytes) -> bool:
         Ed25519PublicKey.from_public_bytes(pk).verify(
             sig, encode(domain) + encode(body))
         return True
-    except (InvalidSignature, ValueError):
+    except (InvalidSignature, ValueError, TypeError, OverflowError, struct.error):
         return False
 
 
@@ -198,7 +198,7 @@ class Vote:
 
 def tx_root(txs) -> bytes:
     """
-    Tính cam kết mật mã của danh sách giao dịch trong block (Transaction Merkle Root).
+    Tính cam kết hash phẳng của danh sách giao dịch có thứ tự (không phải cây Merkle).
     Băm mảng các phần tử [tx.body(), tx.sig] đã tuần tự hóa.
     Nếu tập txs rỗng, vẫn sinh ra mã băm tất định 32 byte của danh sách rỗng.
     """

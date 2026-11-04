@@ -185,9 +185,11 @@ class EquivocateVoter(ByzantineBase):
 
     def configure(self, targets=None, phases=("PREVOTE", "PRECOMMIT"), **base):
         if targets is not None:
-            targets = tuple(targets)
+            targets = tuple(bytes.fromhex(t) if isinstance(t, str) else t for t in targets)
             if len(targets) != 2 or targets[0] == targets[1]:
                 raise ValueError("targets phải là 2 hash khác nhau")
+            if any(not isinstance(t, bytes) or len(t) not in (0, 32) for t in targets):
+                raise ValueError("targets phải là NIL hoặc hash 32 byte (hex trong JSON)")
         if not phases or set(phases) - {"PREVOTE", "PRECOMMIT"}:
             raise ValueError("phases chỉ gồm PREVOTE/PRECOMMIT")
         self.targets, self.phases = targets, tuple(phases)
@@ -272,6 +274,16 @@ class InvalidBlock(ByzantineBase):
             raise ValueError("fake_pol_round cần round >= 1 (pol_round = round - 1)")
         return self
 
+    def on_request_body(self, block_hash, src):
+        # An attacker must serve its intentionally invalid evidence, independently
+        # of the honest Node cache which correctly removes invalid bodies.
+        if src is not None:
+            for block in self.evidence:
+                if isinstance(block, Block) and block.hash() == block_hash:
+                    self.send_to(src, ("BODY", (block_hash, block.txs)))
+                    return
+        super().on_request_body(block_hash, src)
+
     def propose(self):
         if not self.active():
             return super().propose()
@@ -316,24 +328,23 @@ class Replay(ByzantineBase):
     """
     def __init__(self, idx, ctx, kp):
         super().__init__(idx, ctx, kp)
-        self.kinds, self.delay, self.limit = ("VOTE", "PROPOSAL"), 100, 20
+        self.kinds, self.delay, self.limit = ("VOTE", "PROPOSAL", "HEADER", "TX"), 100, 20
         self.recorded = []
         self._seen = set()
 
-    def configure(self, kinds=("VOTE", "PROPOSAL"), delay=100, limit=20, **base):
-        if set(kinds) - {"VOTE", "PROPOSAL"} or delay < 0 or limit < 0:
-            raise ValueError("kinds chỉ gồm VOTE/PROPOSAL; delay, limit >= 0")
+    def configure(self, kinds=("VOTE", "PROPOSAL", "HEADER", "TX"), delay=100, limit=20, **base):
+        if set(kinds) - {"VOTE", "PROPOSAL", "HEADER", "BODY", "TX"} or delay < 0 or limit < 0:
+            raise ValueError("kinds chỉ gồm VOTE/PROPOSAL/HEADER/BODY/TX; delay, limit >= 0")
         self.kinds, self.delay, self.limit = tuple(kinds), delay, limit
         return super().configure(**base)
 
     @staticmethod
     def msg_height(msg):
-        return msg[1].header.height if msg[0] == "PROPOSAL" else msg[1].height
+        return msg[1].header.height if msg[0] == "PROPOSAL" else getattr(msg[1], "height", 0)
 
     def on_message(self, msg, src=None):
-        if (msg[0] in self.kinds and self.msg_height(msg) == self.attack_height
-                and len(self.recorded) < self.limit and msg not in self._seen):
-            self._seen.add(msg)
+        if (msg[0] in self.kinds and (self.msg_height(msg) or self.height) == self.attack_height
+                and len(self.recorded) < self.limit and msg not in self.recorded):
             self.recorded.append(msg)
             self.net.set_timeout(self.idx, self.delay, ("BYZ_REPLAY", len(self.recorded) - 1))
         super().on_message(msg, src)

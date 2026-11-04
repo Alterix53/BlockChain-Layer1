@@ -4,7 +4,6 @@ import json
 import os
 import re
 from dataclasses import replace
-from unittest import mock
 
 from src.common import (Block, CommitCertificate, Header, KeyPair, Tx, Vote, sign, tx_root,
                         verify)
@@ -155,14 +154,12 @@ def load_cfg(**overrides):
 
 
 def run_with_byzantine(behaviors, **cfg_overrides):
-    """Chạy run_sim THẬT (mạng sim.py, config mặc định) nhưng thay vài validator bằng lớp
-    Byzantine. behaviors = {idx: (Lớp, {tham số})}.
-    TẠM: mock.patch thay `Node` trong main.py vì factory theo config là phần của E."""
-    def factory(idx, ctx, kp):
-        return build_node(behaviors, idx, ctx, kp)
-
-    with mock.patch("src.main.Node", factory):
-        return run_sim(load_cfg(**cfg_overrides))
+    """Exercise the public JSON factory; unit fixtures alone construct classes directly."""
+    from src.byzantine import REGISTRY
+    names = {cls: name for name, cls in REGISTRY.items()}
+    byzantine = {str(idx): dict(behavior=names[cls], **(params or {}))
+                 for idx, (cls, params) in behaviors.items()}
+    return run_sim(load_cfg(byzantine=byzantine, **cfg_overrides))
 
 
 # ---------- kiểm safety / liveness CHỈ trên node honest ----------
@@ -213,3 +210,9 @@ def assert_honest_certificates(nodes, byzantine):
                 raise AssertionError(f"{nd.name}: certificate height {c.height} thiếu chữ ký")
             if not cert_sigs_ok(c, nd.ctx["vpks"], nd.ctx["chain_id"]):
                 raise AssertionError(f"{nd.name}: certificate height {c.height} có chữ ký sai")
+    # Out-of-model n=9/Q=6 experiments explicitly test a different quorum.
+    standard = [nd for nd in nodes if nd.name not in byzantine
+                and len(nd.ctx["vals"]) == 3 * nd.ctx["f"] + 1]
+    if standard:
+        from tests.independent_oracle import assert_finalized
+        assert_finalized(standard)

@@ -8,6 +8,7 @@ import os
 import sys
 import unittest
 from unittest import mock
+from dataclasses import replace
 
 _TESTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for _p in (os.path.dirname(_TESTS), _TESTS):  # Workspace/ (cho src) và tests/ (cho c_helpers)
@@ -18,25 +19,20 @@ from src.common import SyncReq, SyncResp  # noqa: E402
 from src.main import run_sim  # noqa: E402
 from src.sim import Net  # noqa: E402
 from c_helpers import (assert_honest_certificates, assert_honest_safety, commit_cert,  # noqa: E402
-                       events, load_cfg, log_events, make_nodes, signed_tx, valid_block)
+                       events, load_cfg, log_events, make_nodes, signed_header, signed_tx, valid_block)
 
 
 class IsolateNet(Net):
-    """Mạng sim.py thật, nhưng trước GST mọi tin tới/từ V9 bị giữ lại tới sau GST (V9 bị cô
-    lập). Không có send(): phía trả lời đồng bộ đi theo nhánh cũ của D (net.push)."""
+    """Drop every physical transmission to/from V9 before GST, including unicasts."""
     ISOLATED, GST = 9, 3000
 
-    def _delay(self, src, dst):
-        d = self.rng.randint(1, self.delta)
+    def _transmit(self, src, dst, msg):
         if self.now < self.GST and src != dst and self.ISOLATED in (src, dst):
-            return self.GST - self.now + d
-        return d
-
-    def broadcast(self, src, msg):
-        h = msg[1].header.height if msg[0] == "PROPOSAL" else getattr(msg[1], "height", 0)
-        self.log(self.nodes[src].name, "SEND", type=msg[0], height=h)
-        for dst in range(len(self.nodes)):
-            self.push(self.now + self._delay(src, dst), "MSG", src, dst, msg)
+            self.log(self.nodes[src].name, "DROP", dst=self.nodes[dst].name,
+                     type=self._unwrap(msg)[0], height=self._message_height(msg),
+                     reason="test_isolation")
+            return
+        super()._transmit(src, dst, msg)
 
 
 class TestSyncCatchUpNetwork(unittest.TestCase):
@@ -55,8 +51,9 @@ class TestSyncCatchUpNetwork(unittest.TestCase):
                 assert_honest_certificates(net.nodes, set())
                 self.assertTrue(log_events(net, "SYNC_REQUEST", node="V9"))
                 self.assertTrue(log_events(net, "SYNC_CATCHUP_SUCCESS", node="V9"))
-                asked = {r["node"] for r in log_events(net, "SYNC_REQUEST")}
-                self.assertEqual(asked, {"V9"}, "node không bị tụt thì không phải hỏi")
+                drops = log_events(net, "DROP", reason="test_isolation")
+                self.assertTrue(any(r["node"] == "V9" for r in drops))
+                self.assertTrue(any(r.get("dst") == "V9" for r in drops))
 
     def test_normal_run_never_asks(self):
         net = run_sim(load_cfg())
@@ -73,11 +70,14 @@ class TestSyncRequestUnit(unittest.TestCase):
         node.ctx["heights"] = n_blocks
         for i in range(n_blocks):
             blk = valid_block(node, [signed_tx(i + 1)])
+            proposer = self.nodes[(blk.header.height + blk.header.round) % len(self.nodes)]
+            hd = replace(blk.header, proposer=proposer.name)
+            blk = replace(blk, header=signed_header(proposer, hd))
             node.finalize(blk, commit_cert(blk, self.nodes[2:9]))
         self.net.clear()
 
     def responses(self):
-        return [(dst, msg[1]) for src, dst, msg in self.net.sent if msg[0] == "SYNC_RESP"]
+        return [(dst, msg[1]) for src, dst, msg in self.net.sent if msg[0] == "SYNC_HEADERS"]
 
     def test_round_timeout_asks_for_sync(self):
         self.asker.on_timeout(("ROUND", 1, 0))
@@ -91,14 +91,14 @@ class TestSyncRequestUnit(unittest.TestCase):
         self.assertTrue(self.server.done)
         self.server.on_message(("SYNC_REQ", SyncReq("V0", 1, 1)))
         (dst, resp), = self.responses()
-        self.assertEqual((dst, [b.header.height for b, _ in resp.chain_data]), (0, [1]))
+        self.assertEqual((dst, [hd.height for hd, _ in resp]), (0, [1]))
 
     def test_requested_range_is_bounded(self):
         self.give_ledger(self.server, 6)
         # khoảng khổng lồ / âm: không lặp theo to_height, tối đa max_ahead + 1 block
         self.server.on_message(("SYNC_REQ", SyncReq("V0", -5, 10**12)))
         (_, resp), = self.responses()
-        self.assertEqual([b.header.height for b, _ in resp.chain_data],
+        self.assertEqual([hd.height for hd, _ in resp],
                          list(range(1, self.server.max_ahead + 2)))
         # người hỏi không phải validator, hoặc chính mình: không trả lời
         self.net.clear()
