@@ -17,3 +17,16 @@ logs/*.log
 .pytest_cache/
 .codegraph
 .agents/
+.review-tmp
+.vscode
+.codex
+.cursor
+.gemini
+.claude
+
+
+# reviews
+GEMINI.md
+REVIEW.md
+AGENTS.md
+.mcp.json
