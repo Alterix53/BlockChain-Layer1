@@ -91,39 +91,26 @@ class ByzantineBase(Node):
                 return tx
         return None
 
-    def send_to(self, dst, msg=None):
-        """Gửi thông điệp tới một danh sách node đích cụ thể hoặc một node đơn lẻ.
-        Tương thích cả hai chữ ký:
-        - send_to(dst, msg) chuẩn từ Node (dst là int hoặc list/tuple các int)
-        - send_to(msg, dsts) cũ trong ByzantineBase (msg là tuple thông điệp, dsts là list/tuple int)
-        """
-        if not callable(getattr(self.net, "send", None)):
-            raise RuntimeError("Net chưa có send(src, dst, msg): chờ phần A")
-        if isinstance(dst, (tuple, list)) and len(dst) >= 2 and isinstance(dst[0], str) and isinstance(msg, (tuple, list, set)):
-            actual_msg, actual_dsts = dst, msg
-        elif isinstance(dst, (list, tuple, set)):
-            actual_msg, actual_dsts = msg, dst
-        else:
-            actual_msg, actual_dsts = msg, [dst]
-
-        for d in sorted(actual_dsts):
-            self.net.send(self.idx, d, actual_msg)
-
     def send_to_many(self, msg, dsts):
-        """Phương thức bổ trợ gửi cùng một thông điệp tới nhiều node đích."""
-        self.send_to(dsts, msg)
+        """Gửi cùng một thông điệp riêng cho từng node trong dsts (theo thứ tự tăng dần, để
+        tất định), qua Node.send_to -> Net.send: vẫn chịu trễ/rớt/giới hạn tốc độ của mạng."""
+        for dst in sorted(dsts):
+            self.send_to(dst, msg)
 
     def send_vote(self, vote, dsts=None):
-        """Phát tán phiếu bầu: nếu dsts=None thì broadcast, ngược lại gửi riêng theo nhóm."""
+        """dsts=None: broadcast như honest; có dsts: chỉ gửi cho nhóm đó."""
         if dsts is None:
             return super().send_vote(vote)
-        self.send_to(dsts, ("VOTE", vote))
+        self.send_to_many(("VOTE", vote), dsts)
 
     def send_proposal(self, block, dsts=None):
-        """Phát tán đề xuất khối: nếu dsts=None thì broadcast, ngược lại gửi riêng theo nhóm."""
+        """dsts=None: như honest (giữ thân block, broadcast HEADER). Có dsts: cùng giao thức
+        2 bước nhưng HEADER chỉ tới nhóm đó; ai xin REQUEST_BODY thì nhận đúng thân của header
+        mình đã thấy, vì self.bodies tra theo hash block."""
         if dsts is None:
             return super().send_proposal(block)
-        self.send_to(dsts, ("PROPOSAL", block))
+        self.bodies[block.hash()] = block.txs
+        self.send_to_many(("HEADER", block.header), dsts)
 
 
 class Silent(ByzantineBase):
@@ -309,26 +296,28 @@ class Replay(ByzantineBase):
     Hành vi Byzantine: Phát lại thông điệp cũ (Replay Attack - Mục 3 đề bài & Kịch bản T2).
 
     Chiến thuật tấn công:
-    - Lắng nghe và ghi lại các thông điệp mạng (`VOTE`, `PROPOSAL`) hợp lệ ở height tấn công.
+    - Lắng nghe và ghi lại các thông điệp mạng (`VOTE`, `HEADER`) hợp lệ ở height tấn công.
     - Sau một khoảng thời gian ảo `delay`, phát lại NGUYÊN VẸN thông điệp đó ra mạng.
     -> Kiểm tra: Các node honest tuân thủ Quy tắc 7 và bộ đệm mempool/seen_tx_hashes sẽ nhận diện
        thông điệp trùng lặp và bỏ qua an toàn, không đếm 2 lần và không gây rối loạn đồng thuận.
     """
     def __init__(self, idx, ctx, kp):
         super().__init__(idx, ctx, kp)
-        self.kinds, self.delay, self.limit = ("VOTE", "PROPOSAL"), 100, 20
+        self.kinds, self.delay, self.limit = ("VOTE", "HEADER"), 100, 20
         self.recorded = []
         self._seen = set()
 
-    def configure(self, kinds=("VOTE", "PROPOSAL"), delay=100, limit=20, **base):
-        if set(kinds) - {"VOTE", "PROPOSAL"} or delay < 0 or limit < 0:
-            raise ValueError("kinds chỉ gồm VOTE/PROPOSAL; delay, limit >= 0")
+    def configure(self, kinds=("VOTE", "HEADER"), delay=100, limit=20, **base):
+        # block đi qua mạng bằng HEADER (giao thức 2 bước của A), nên phát lại HEADER chứ
+        # không phải PROPOSAL; Vote và Header đều có trường height
+        if set(kinds) - {"VOTE", "HEADER"} or delay < 0 or limit < 0:
+            raise ValueError("kinds chỉ gồm VOTE/HEADER; delay, limit >= 0")
         self.kinds, self.delay, self.limit = tuple(kinds), delay, limit
         return super().configure(**base)
 
     @staticmethod
     def msg_height(msg):
-        return msg[1].header.height if msg[0] == "PROPOSAL" else msg[1].height
+        return msg[1].height
 
     def on_message(self, msg, src=None):
         if (msg[0] in self.kinds and self.msg_height(msg) == self.attack_height
@@ -399,7 +388,9 @@ class ForkCoalition(ByzantineBase):
                  round=self.round, a=short(a.hash()), b=short(b.hash()))
 
     def on_message(self, msg, src=None):
-        return
+        # không chạy FSM honest; chỉ trả thân block (A hoặc B) cho node đã nhận HEADER tương ứng
+        if msg[0] == "REQUEST_BODY":
+            self.on_request_body(msg[1], src)
 
 
 # Bảng tra cứu ánh xạ tên hành vi sang lớp đối tượng tương ứng
