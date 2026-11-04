@@ -21,8 +21,18 @@ from tests.c_helpers import (
 
 class TestT1Normal(unittest.TestCase):
     def test_t1_normal_execution(self):
-        cfg = load_cfg(seed=42)
+        # T1 is the fault-free baseline, independent of the demo config's noise.
+        # Delay remains bounded/nonzero; fault and load scenarios have other tests.
+        cfg = load_cfg(seed=42, gst=0, delta=1, byzantine={},
+                       pre_gst_drop_probability=0, duplicate_probability=0,
+                       pre_gst_reorder_probability=0, rate_limit=None, peer_block=None)
         net = run_sim(cfg)
+
+        self.assertTrue(all(not nd.is_byzantine for nd in net.nodes))
+        self.assertFalse(log_events(net, "DROP"))
+        self.assertFalse(log_events(net, "DUPLICATE"))
+        self.assertFalse(log_events(net, "DELAY", reason="reorder"))
+        self.assertFalse(log_events(net, "TIMEOUT"))
 
         # 1. Toàn bộ node trung thực hoàn thành đủ 5 block
         self.assertEqual(len(net.nodes), cfg["n"])
@@ -46,6 +56,7 @@ class TestT1Normal(unittest.TestCase):
         # Toàn bộ block đều chốt ở round 0 trên mọi node
         for nd in net.nodes:
             self.assertTrue(all(b.header.round == 0 for b in nd.ledger))
+            self.assertTrue(all(cert.round == 0 for cert in nd.certificates.values()))
 
         # 4. Trạng thái ứng dụng và Nonce
         expected_state = {

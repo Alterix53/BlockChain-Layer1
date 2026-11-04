@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 import unittest
 
-from src.common import KeyPair, Vote, sign
-from src.main import run_sim
+from src.common import H, KeyPair, Vote, sign
+from src.main import identity_keys, run_sim
 from src.sim import Net
 
 
@@ -105,13 +105,14 @@ class NetTests(unittest.TestCase):
                                    "duration": 5})
         net.send(0, 1, ("FIRST", None))
         net.send(0, 1, ("SECOND", None))
-        net.run(10)
+        net.run(110)
 
-        self.assertEqual(len(net.nodes[1].received), 1)
+        self.assertEqual(len(net.nodes[1].received), 2)
         self.assertFalse(net.blocked_peers)
         self.assertTrue(any("ev=BLOCK" in line for line in net.logs))
         self.assertTrue(any("ev=UNBLOCK" in line for line in net.logs))
-        self.assertTrue(any("reason=peer_rate_limit" in line for line in net.logs))
+        self.assertFalse(any("ev=DROP" in line for line in net.logs))
+        self.assertEqual([item[2] for item in net.nodes[1].received], [0, 100])
 
 
 class ConsensusNetworkTests(unittest.TestCase):
@@ -153,13 +154,14 @@ class ConsensusNetworkTests(unittest.TestCase):
         self.assert_no_conflicting_finalization(net.nodes)
 
         receiver = net.nodes[1]
-        voter_key = KeyPair(f"val-{cfg['seed']}-0".encode())
-        first_vote = Vote("PREVOTE", cfg["heights"], 0, b"block-a", "V0")
+        voter_key = identity_keys(cfg)[0][0]
+        round = receiver.round
+        first_vote = Vote("PREVOTE", cfg["heights"], round, H(b"block-a"), "V0")
         first_vote = Vote(
             *first_vote.body(),
             sig=sign(voter_key, "VOTE:" + cfg["chain_id"], first_vote.body()),
         )
-        conflicting_vote = Vote("PREVOTE", cfg["heights"], 0, b"block-b", "V0")
+        conflicting_vote = Vote("PREVOTE", cfg["heights"], round, H(b"block-b"), "V0")
         conflicting_vote = Vote(
             *conflicting_vote.body(),
             sig=sign(voter_key, "VOTE:" + cfg["chain_id"],
@@ -170,9 +172,9 @@ class ConsensusNetworkTests(unittest.TestCase):
         receiver.on_vote(first_vote)
         receiver.on_vote(conflicting_vote)
 
-        slot = receiver.votes[(cfg["heights"], 0, "PREVOTE")]
+        slot = receiver.votes[(cfg["heights"], round, "PREVOTE")]
         self.assertEqual(len(slot), 1)
-        self.assertEqual(slot["V0"].block_hash, b"block-a")
+        self.assertEqual(slot["V0"].block_hash, H(b"block-a"))
         self.assertTrue(any("ev=EQUIVOCATION" in line for line in net.logs))
 
     def test_t5_pre_gst_drops_and_delays_preserve_finalization_safety(self):

@@ -145,13 +145,20 @@ Hàm [check_safety(nodes)](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Wor
 
 ```python
 def check_safety(nodes):
-    m = min(len(x.ledger) for x in nodes)
+    nodes = [x for x in nodes if not x.is_byzantine]
+    if not nodes:
+        raise ValueError("không có honest node")
+    m = max(len(x.ledger) for x in nodes)
     for h in range(m):
         # Tập hợp tất cả các mã hash của block tại height h của mọi node
-        assert len({x.ledger[h].hash() for x in nodes}) == 1, f"FORK ở height {h+1}!"
+        hashes = {x.ledger[h].hash() for x in nodes if len(x.ledger) > h}
+        if len(hashes) > 1:
+            raise AssertionError(f"FORK ở height {h+1}!")
     return m
 ```
-- Nếu có bất kỳ hai node nào chốt 2 block khác nhau tại cùng một chiều cao $h$, lệnh `assert` sẽ lập tức báo lỗi `FORK` và dừng chương trình.
+- Checker xét mọi height đã được bất kỳ honest nào chốt; node có ledger rỗng không che được fork.
+- Safety riêng không chứng minh tiến triển. CLI gọi thêm check_completion để kiểm mọi honest
+  chốt đủ mục tiêu và cùng state; hết t_end mà chưa xong trả lỗi INCOMPLETE.
 
 ---
 
@@ -166,7 +173,7 @@ python -m src.main --config config/default.json
 **Kết quả in ra màn hình mẫu**:
 ```text
 OK: 5 block được chốt, mọi node cùng chuỗi.
-state hash cuối: d0f04c64b63889b7
+state hash cuối: 0b837be96db72e1f
 state: {'Alice/msg': 'v5', 'Bob/msg': 'v5', 'Carol/msg': 'v5'}
 ```
 
@@ -177,7 +184,7 @@ python -m src.main --twice
 **Kết quả in ra**:
 ```text
 OK: 5 block được chốt, mọi node cùng chuỗi.
-state hash cuối: d0f04c64b63889b7
+state hash cuối: 0b837be96db72e1f
 state: {'Alice/msg': 'v5', 'Bob/msg': 'v5', 'Carol/msg': 'v5'}
 Tất định (2 lần chạy giống hệt): True
 ```

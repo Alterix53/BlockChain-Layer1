@@ -17,16 +17,24 @@ logs/*.log
 .pytest_cache/
 .codegraph
 .agents/
-.review-tmp
-.vscode
-.codex
-.cursor
-.gemini
-.claude
 
+# Local editor / AI integrations (project-wide instructions stay in AGENTS.md)
+/.claude/
+/.codex/
+/.cursor/
+/.gemini/
+/.vscode/
+/.mcp.json
+/GEMINI.md
 
-# reviews
-GEMINI.md
-REVIEW.md
-AGENTS.md
-.mcp.json
+# Disposable review probes and generated artifacts
+/.review-tmp/
+/output/
+*.log
+
+# Additional Python tooling caches
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/

@@ -13,7 +13,7 @@ Kỳ vọng:
 """
 import unittest
 from src.byzantine import Replay
-from src.common import KeyPair, Vote, sign
+from src.common import H, Vote, sign
 from src.main import run_sim
 from tests.c_helpers import (
     assert_honest_certificates,
@@ -58,18 +58,16 @@ class TestT2DuplicateReorder(unittest.TestCase):
         nodes, net = make_nodes()
         receiver = nodes[0]
 
-        voter_kp = KeyPair(b"test-voter-key-seed")
+        voter = nodes[1]
+        voter_kp = voter.kp
         cid = receiver.ctx["chain_id"]
         h, r = 1, 0
 
-        vote_a = Vote("PREVOTE", h, r, b"block_hash_A_32bytes_sample12345", "V_TEST")
+        vote_a = Vote("PREVOTE", h, r, H(b"block-A"), voter.name)
         vote_a = Vote(*vote_a.body(), sig=sign(voter_kp, "VOTE:" + cid, vote_a.body()))
 
-        vote_b = Vote("PREVOTE", h, r, b"block_hash_B_32bytes_sample12345", "V_TEST")
+        vote_b = Vote("PREVOTE", h, r, H(b"block-B"), voter.name)
         vote_b = Vote(*vote_b.body(), sig=sign(voter_kp, "VOTE:" + cid, vote_b.body()))
-
-        # Nạp khóa của V_TEST vào context để pass chữ ký
-        receiver.ctx["vpks"]["V_TEST"] = voter_kp.pk
 
         # Gửi vote_a lần 1
         receiver.on_vote(vote_a)
@@ -78,17 +76,17 @@ class TestT2DuplicateReorder(unittest.TestCase):
         receiver.on_vote(vote_a)
 
         slot = receiver.votes.get((h, r, "PREVOTE"), {})
-        self.assertIn("V_TEST", slot)
-        self.assertEqual(slot["V_TEST"].block_hash, vote_a.block_hash)
-        self.assertEqual(len([v for v in slot.values() if v.voter == "V_TEST"]), 1,
+        self.assertIn(voter.name, slot)
+        self.assertEqual(slot[voter.name].block_hash, vote_a.block_hash)
+        self.assertEqual(len([v for v in slot.values() if v.voter == voter.name]), 1,
                          "Voter chỉ được tính tối đa 1 phiếu duy nhất")
 
         # Gửi vote_b mâu thuẫn (Equivocation)
         receiver.on_vote(vote_b)
         # Phiếu bầu đầu tiên (vote_a) phải được giữ nguyên
-        self.assertEqual(slot["V_TEST"].block_hash, vote_a.block_hash)
+        self.assertEqual(slot[voter.name].block_hash, vote_a.block_hash)
         # Hệ thống phải phát hiện và ghi log EQUIVOCATION
-        equiv_logs = events(net, "EQUIVOCATION", voter="V_TEST")
+        equiv_logs = events(net, "EQUIVOCATION", voter=voter.name)
         self.assertTrue(len(equiv_logs) >= 1, "Phải ghi nhận log EQUIVOCATION khi phát hiện 2 phiếu khác nhau")
 
     def test_t2_byzantine_replay_attack_node(self):
@@ -102,8 +100,8 @@ class TestT2DuplicateReorder(unittest.TestCase):
 
         # Tất cả các node honest vẫn đạt được đồng thuận an toàn, không fork
         honest_nodes = [nd for nd in net.nodes if not getattr(nd, "is_byzantine", False)]
-        assert_honest_safety(net.nodes, {2})
-        assert_honest_certificates(net.nodes, {2})
+        assert_honest_safety(net.nodes, {"V2"})
+        assert_honest_certificates(net.nodes, {"V2"})
 
 
 if __name__ == "__main__":

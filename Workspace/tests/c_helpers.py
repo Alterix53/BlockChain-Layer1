@@ -212,3 +212,9 @@ def assert_honest_certificates(nodes, byzantine):
                 raise AssertionError(f"{nd.name}: certificate height {c.height} thiếu chữ ký")
             if not cert_sigs_ok(c, nd.ctx["vpks"], nd.ctx["chain_id"]):
                 raise AssertionError(f"{nd.name}: certificate height {c.height} có chữ ký sai")
+    # Out-of-model n=9/Q=6 experiments explicitly test a different quorum.
+    standard = [nd for nd in nodes if nd.name not in byzantine
+                and len(nd.ctx["vals"]) == 3 * nd.ctx["f"] + 1]
+    if standard:
+        from tests.independent_oracle import assert_finalized
+        assert_finalized(standard)

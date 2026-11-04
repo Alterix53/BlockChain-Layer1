@@ -24,7 +24,7 @@ from .common import (
     tx_root,
     verify,
 )
-from .execution import State, apply_tx, apply_txs
+from .execution import State, apply_tx, apply_txs, valid_tx_fields
 
 GENESIS = H(b"genesis")
 KINDS = ("PREVOTE", "PRECOMMIT")
@@ -48,7 +48,7 @@ class Node:
         self.net = ctx["net"]
         self.Q = 2 * ctx["f"] + 1                     # Ngưỡng Quorum tối thiểu để đạt đồng thuận (2f + 1)
         self.max_ahead = ctx.get("max_ahead_h", 3)    # Cửa sổ nhận tin: tối đa 3 height phía trước
-        self.max_round = ctx.get("max_round", 1000)   # Trần tuyệt đối cho round (chống DoS vô tận)
+        self.max_round = ctx.get("max_round", 1000)   # Cửa sổ round phía trước, không phải trần vòng đời
         self.state = State()                          # Máy trạng thái Key-Value của ứng dụng
         self.ledger = []                              # Danh sách các block đã được chốt (Finalized ledger)
         self.certificates = {}                        # Lưu trữ CommitCertificate cho từng height: height -> cert
@@ -72,6 +72,8 @@ class Node:
         self.future_headers = []                      # Danh sách (header, source) của height tương lai
         self.pending_headers = {}                     # hash -> header đã duyệt hợp lệ, đang chờ tải body
         self.requested_bodies = set()                 # Tập block_hash đã gửi yêu cầu tải body (tránh hỏi trùng)
+        self.proofs = {}                             # (height, round, block_hash) -> PREVOTE certificate
+        self.sync_pending = {}                       # block_hash -> verified commit certificate
 
     # ----- TIỆN ÍCH HỆ THỐNG VÀ VÒNG ĐỜI -----
     def log(self, ev, **kw):
@@ -89,7 +91,9 @@ class Node:
 
     def in_window(self, h, r):
         """Kiểm tra thông điệp có nằm trong cửa sổ đồng thuận hợp lệ hay không (chống tin rác quá xa)."""
-        return self.height <= h <= self.height + self.max_ahead and 0 <= r <= self.max_round
+        return (type(h) is int and type(r) is int
+                and self.height <= h <= self.height + self.max_ahead
+                and 0 <= r <= self.round + self.max_round)
 
     def start(self):
         """Khởi động validator bắt đầu từ Height 1."""
@@ -148,6 +152,13 @@ class Node:
         4. Kích hoạt cỗ máy trạng thái run().
         """
         self.round, self.step = r, "PROPOSE"
+        protected = set(self.sync_pending) | {bh for _, _, bh in self.proofs}
+        if self.locked is not None:
+            protected.add(self.locked[0])
+        self.pending_headers = {bh: hd for bh, hd in self.pending_headers.items()
+                                if hd.round >= r or bh in protected}
+        self.requested_bodies = {(bh, rr) for bh, rr in self.requested_bodies
+                                 if bh in self.pending_headers}
         self.log("ROUND_START", height=self.height, round=r)
         if self.proposer(self.height, r) == self.name:
             self.propose()
@@ -191,7 +202,40 @@ class Node:
     def polka(self, h, r, bh):
         """Kiểm tra xem block `bh` có đạt được Quorum (>= Q) phiếu PREVOTE ở (h, r) hay không."""
         pv = self.votes.get((h, r, "PREVOTE"), {})
-        return sum(1 for v in pv.values() if v.block_hash == bh) >= self.Q
+        return ((h, r, bh) in self.proofs
+                or sum(1 for v in pv.values() if v.block_hash == bh) >= self.Q)
+
+    def polka_votes(self, h, r, bh):
+        proof = self.proofs.get((h, r, bh))
+        if proof is not None:
+            return proof
+        return tuple(v for _, v in sorted(self.votes.get((h, r, "PREVOTE"), {}).items())
+                     if v.block_hash == bh)
+
+    def on_polka(self, votes):
+        """Accept evidence atomically; an asserted pol_round alone is never trusted."""
+        if not isinstance(votes, (tuple, list)) or not votes or len(votes) > len(self.ctx["vals"]):
+            return self.log("REJECT", reason="bad_polka", height=self.height)
+        first = votes[0]
+        if not isinstance(first, Vote) or not self.in_window(first.height, first.round):
+            return
+        signers = set()
+        for vote in votes:
+            if (not isinstance(vote, Vote) or not isinstance(vote.voter, str)
+                    or not isinstance(vote.block_hash, bytes) or len(vote.block_hash) != 32
+                    or vote.kind != "PREVOTE"
+                    or (vote.height, vote.round, vote.block_hash)
+                    != (first.height, first.round, first.block_hash)
+                    or vote.voter in signers or vote.voter not in self.ctx["vpks"]
+                    or not verify(self.ctx["vpks"][vote.voter], "VOTE:" + self.ctx["chain_id"],
+                                  vote.body(), vote.sig)):
+                return self.log("REJECT", reason="bad_polka", height=first.height)
+            signers.add(vote.voter)
+        if first.block_hash == NIL or len(signers) < self.Q:
+            return self.log("REJECT", reason="bad_polka", height=first.height)
+        self.proofs[(first.height, first.round, first.block_hash)] = tuple(votes)
+        self.log("POLKA", height=first.height, round=first.round,
+                 block=first.block_hash.hex()[:8], signers=len(signers))
 
     def best_polka(self):
         """
@@ -205,6 +249,10 @@ class Node:
             for t, c in sorted(Counter(v.block_hash for v in vs.values()).items()):
                 if t != NIL and c >= self.Q and t in self.blocks and self.check_block(self.blocks[t]):
                     best = (t, rr)
+        for (hh, rr, bh) in sorted(self.proofs):
+            if (hh == self.height and rr < self.round and bh in self.blocks
+                    and self.check_block(self.blocks[bh]) and (best is None or rr > best[1])):
+                best = (bh, rr)
         return best
 
     # ----- ĐỀ XUẤT BLOCK (PROPOSAL) -----
@@ -222,6 +270,7 @@ class Node:
             blk = self.seal(old.txs, old.header.state_hash, pr)   # Giữ nguyên nội dung giao dịch và state_hash
             self.log("REPROPOSE", height=self.height, round=self.round,
                      pol_round=pr, block=t.hex()[:8])
+            self.net.broadcast(self.idx, ("POLKA", self.polka_votes(self.height, pr, t)))
         else:
             blk = self.make_block()
         self.log("PROPOSE", height=self.height, round=self.round,
@@ -298,17 +347,21 @@ class Node:
             self.on_body(payload)
         elif kind == "VOTE":
             self.on_vote(payload)
+        elif kind == "POLKA":
+            self.on_polka(payload)
         elif kind == "TX":
             self.on_tx(payload)
         elif kind == "SYNC_RESP":
             self.on_sync_response(payload)
+        elif kind == "SYNC_HEADERS":
+            self.on_sync_headers(payload, src)
 
         # Kiểm tra nhảy round và chạy tiếp cỗ máy trạng thái
         if not self.maybe_skip_round():
             self.run()
 
     # ----- XỬ LÝ GIAO DỊCH VÀ ĐỒNG BỘ CATCH-UP (PHẦN D) -----
-    def on_tx(self, tx):
+    def on_tx(self, tx, gossip=True):
         """
         Xử lý giao dịch lan truyền (Tx Gossip):
         1. Khử trùng lặp tx trong O(1) qua `seen_tx_hashes`.
@@ -316,6 +369,8 @@ class Node:
            Nếu vi phạm -> ghi log `REJECT` kèm lý do (Kịch bản T3).
         3. Thêm vào mempool và phát tán tiếp cho các node khác.
         """
+        if not valid_tx_fields(tx):
+            return self.log("REJECT", reason="bad_tx_format", height=self.height)
         tx_hash = H(encode(tx.body()))
         if tx_hash in self.seen_tx_hashes:
             return
@@ -325,13 +380,16 @@ class Node:
             return self.log("REJECT", reason="unknown_sender", sender=tx.sender, nonce=tx.nonce)
         if not verify(pk, "TX:" + self.ctx["chain_id"], tx.body(), tx.sig):
             return self.log("REJECT", reason="bad_tx_sig", sender=tx.sender, nonce=tx.nonce)
-        if not tx.key.startswith(tx.sender + "/"):
+        if "/" in tx.sender or tx.key.partition("/")[0] != tx.sender:
             return self.log("REJECT", reason="not_owner", sender=tx.sender, nonce=tx.nonce)
+        if tx.nonce <= self.state.nonces.get(tx.sender, 0):
+            return self.log("REJECT", reason="bad_nonce", sender=tx.sender, nonce=tx.nonce)
 
         self.seen_tx_hashes.add(tx_hash)
         self.mempool.append(tx)
         self.log("TX_RECEIVED", sender=tx.sender, nonce=tx.nonce)
-        self.net.broadcast(self.idx, ("TX", tx))
+        if gossip:
+            self.net.broadcast(self.idx, ("TX", tx))
 
     def request_sync(self):
         """
@@ -348,15 +406,65 @@ class Node:
         Xử lý khi nhận được yêu cầu đồng bộ từ peer khác:
         Trích xuất các khối đã finalize kèm CommitCertificate trong ledger và gửi phản hồi `SYNC_RESP`.
         """
+        if (not isinstance(req, SyncReq) or not isinstance(req.requester, str)
+                or not self._wire_int(req.from_height) or not self._wire_int(req.to_height)):
+            return self.log("REJECT_SYNC", reason="bad_sync_request", height=self.height)
         vals = self.ctx["vals"]
         if req.requester not in vals or req.requester == self.name:
             return
         lo = max(1, req.from_height)
         hi = min(req.to_height, len(self.ledger), lo + self.max_ahead)
-        chain_data = tuple((self.ledger[h - 1], self.certificates[h])
+        chain_data = tuple((self.ledger[h - 1].header, self.certificates[h])
                            for h in range(lo, hi + 1) if h in self.certificates)
         if chain_data:
-            self.send_to(vals.index(req.requester), ("SYNC_RESP", SyncResp(self.name, chain_data)))
+            self.send_to(vals.index(req.requester), ("SYNC_HEADERS", chain_data))
+
+    def certificate_error(self, cert, h, bh):
+        if (not isinstance(cert, CommitCertificate) or not self._wire_int(cert.height)
+                or not self._wire_int(cert.round) or not isinstance(cert.block_hash, bytes)
+                or len(cert.block_hash) != 32 or not isinstance(cert.signatures, dict)
+                or any(not isinstance(voter, str) or not isinstance(sig, bytes)
+                       for voter, sig in cert.signatures.items())):
+            return "bad_certificate_format"
+        if cert.height != h or cert.block_hash != bh or type(cert.round) is not int or cert.round < 0:
+            return "cert_mismatch"
+        if not set(cert.signatures) <= set(self.ctx["vals"]):
+            return "unknown_signer"
+        if len(cert.signatures) < self.Q:
+            return "insufficient_cert_sigs"
+        for voter, sig in sorted(cert.signatures.items()):
+            body = Vote("PRECOMMIT", h, cert.round, bh, voter).body()
+            if not verify(self.ctx["vpks"][voter], "VOTE:" + self.ctx["chain_id"], body, sig):
+                return "invalid_cert_sig"
+        return None
+
+    def on_sync_headers(self, items, src):
+        """Authenticate finalized headers before requesting any transaction bodies."""
+        if not isinstance(items, (tuple, list)):
+            return self.log("REJECT_SYNC", reason="bad_sync_headers", height=self.height)
+        for item in items[:self.max_ahead + 1]:
+            if not isinstance(item, (tuple, list)) or len(item) != 2:
+                return self.log("REJECT_SYNC", reason="bad_sync_headers", height=self.height)
+            hd, cert = item
+            if not self._header_fields_ok(hd):
+                return self.log("REJECT_SYNC", reason="invalid_header", height=self.height)
+            if not self.height <= hd.height <= self.height + self.max_ahead:
+                continue
+            bh = Block(hd).hash()
+            error = self.certificate_error(cert, hd.height, bh)
+            if error:
+                self.log("REJECT_SYNC", reason=error, height=hd.height)
+                continue
+            pk = self.ctx["vpks"].get(hd.proposer)
+            if (pk is None or hd.proposer != self.proposer(hd.height, hd.round)
+                    or not (-1 <= hd.pol_round < hd.round)
+                    or not verify(pk, "HEADER:" + self.ctx["chain_id"], hd.body(), hd.sig)):
+                self.log("REJECT_SYNC", reason="invalid_header", height=hd.height)
+                continue
+            self.sync_pending[bh] = cert
+            self.on_header(hd, src)
+            if hd.height == self.height and bh in self.bodies:
+                self.on_body((bh, self.bodies[bh]))
 
     def send_to(self, dst, msg):
         """Gửi thông điệp unicast tới node `dst` thông qua bộ mô phỏng mạng `sim.py`."""
@@ -374,11 +482,21 @@ class Node:
         6. Thực thi các giao dịch phải ra state_hash khớp hoàn toàn với cam kết trong Header.
         -> Nếu hợp lệ: finalize khối và bắt kịp mạng!
         """
-        for blk, cert in resp.chain_data:
+        if not isinstance(resp, SyncResp) or not isinstance(resp.chain_data, (tuple, list)):
+            return self.log("REJECT_SYNC", reason="bad_sync_response", height=self.height)
+        for item in resp.chain_data[:self.max_ahead + 1]:
+            if not isinstance(item, (tuple, list)) or len(item) != 2:
+                return self.log("REJECT_SYNC", reason="bad_sync_response", height=self.height)
+            blk, cert = item
+            if (not isinstance(blk, Block) or not self._header_fields_ok(blk.header)
+                    or not isinstance(blk.txs, (tuple, list))
+                    or not all(valid_tx_fields(tx) for tx in blk.txs)):
+                return self.log("REJECT_SYNC", reason="bad_sync_response", height=self.height)
             h = blk.header.height
             if h != self.height:
                 continue
-
+            if not isinstance(cert, CommitCertificate):
+                return self.log("REJECT_SYNC", reason="bad_certificate_format", height=h)
             if cert.height != h or cert.block_hash != blk.hash():
                 return self.log("REJECT_SYNC", reason="cert_mismatch", height=h)
             if blk.header.tx_root != tx_root(blk.txs):
@@ -390,14 +508,9 @@ class Node:
                     or not verify(pk, "HEADER:" + self.ctx["chain_id"], hd.body(), hd.sig)):
                 return self.log("REJECT_SYNC", reason="invalid_header", height=h)
 
-            if not set(cert.signatures) <= set(self.ctx["vals"]):
-                return self.log("REJECT_SYNC", reason="unknown_signer", height=h)
-            if len(cert.signatures) < self.Q:
-                return self.log("REJECT_SYNC", reason="insufficient_cert_sigs", height=h)
-            for voter, sig in sorted(cert.signatures.items()):
-                body = Vote("PRECOMMIT", h, cert.round, cert.block_hash, voter).body()
-                if not verify(self.ctx["vpks"][voter], "VOTE:" + self.ctx["chain_id"], body, sig):
-                    return self.log("REJECT_SYNC", reason="invalid_cert_sig", height=h)
+            error = self.certificate_error(cert, h, blk.hash())
+            if error:
+                return self.log("REJECT_SYNC", reason=error, height=h)
 
             if blk.header.parent != self.last_hash():
                 return self.log("REJECT_SYNC", reason="bad_parent_hash", height=h)
@@ -432,7 +545,11 @@ class Node:
         2. Nếu hợp lệ: lưu vào `pending_headers`.
         3. Gửi thông điệp `REQUEST_BODY` ngược lại cho proposer `src` để xin tải danh sách txs.
         """
-        if not self.in_window(hd.height, hd.round):
+        if not self._header_fields_ok(hd):
+            return self.log("REJECT", reason="bad_header_format", height=self.height)
+        certified = self.sync_pending.get(Block(hd).hash())
+        if not self.in_window(hd.height, hd.round) and not (
+                certified is not None and self.height <= hd.height <= self.height + self.max_ahead):
             return
         if not (-1 <= hd.pol_round < hd.round):
             return self.log("REJECT", reason="bad_pol_round", height=hd.height)
@@ -449,19 +566,43 @@ class Node:
             return
         if hd.parent != self.last_hash():
             return self.log("REJECT", reason="bad_parent", height=hd.height)
+        if block_hash not in self.pending_headers:
+            # A faulty proposer cannot consume the entire height's admission
+            # budget with arbitrarily many signed alternatives in one slot.
+            same_slot = [old for old in self.pending_headers.values()
+                         if (old.height, old.round) == (hd.height, hd.round)]
+            if len(same_slot) >= 2 and certified is None:
+                return self.log("REJECT", reason="header_slot_full", height=hd.height)
+            if len(self.pending_headers) >= self.ctx.get("max_pending_headers", 256):
+                # Current proposals and authenticated finality have priority
+                # over speculative future-round headers, never over proofs.
+                protected = set(self.sync_pending) | {bh for _, _, bh in self.proofs}
+                if self.locked is not None:
+                    protected.add(self.locked[0])
+                victims = [bh for bh, old in self.pending_headers.items()
+                           if bh not in protected and (certified is not None or old.round != self.round)]
+                if not victims or (hd.round != self.round and certified is None):
+                    return self.log("REJECT", reason="header_buffer_full", height=hd.height)
+                del self.pending_headers[victims[0]]
         self.pending_headers[block_hash] = hd
         if block_hash in self.blocks:
             blk = Block(hd, self.blocks[block_hash].txs)
+            if certified is not None:
+                return self.on_sync_response(SyncResp("peer", ((blk, certified),)))
             self.on_proposal(blk)
             if self.height == hd.height:
                 self.run()
             return
         if block_hash in self.bodies:
             blk = Block(hd, self.bodies[block_hash])
-            self.on_proposal(blk)
-            if self.height == hd.height:
-                self.run()
-            return
+            if hd.tx_root == tx_root(blk.txs):
+                if certified is not None:
+                    return self.on_body((block_hash, blk.txs))
+                self.on_proposal(blk)
+                if self.height == hd.height:
+                    self.run()
+                return
+            del self.bodies[block_hash]
         if (block_hash, hd.round) in self.requested_bodies:
             return
         if src is None:
@@ -470,12 +611,28 @@ class Node:
         self.log("REQUEST_BODY", height=hd.height,
                  block=block_hash.hex()[:8], peer=self.ctx["vals"][src])
         self.send_to(src, ("REQUEST_BODY", block_hash))
+        self.net.set_timeout(self.idx, self.timeout_len(self.round),
+                             ("BODY_RETRY", hd.height, hd.round, block_hash, src))
+
+    @staticmethod
+    def _wire_int(value):
+        return type(value) is int and -(2**63) <= value < 2**63
+
+    @classmethod
+    def _header_fields_ok(cls, hd):
+        return (isinstance(hd, Header) and isinstance(hd.proposer, str)
+                and isinstance(hd.sig, bytes)
+                and all(cls._wire_int(value) for value in (hd.height, hd.round, hd.pol_round))
+                and all(isinstance(value, bytes) and len(value) == 32
+                        for value in (hd.parent, hd.state_hash, hd.tx_root)))
 
     def on_request_body(self, block_hash, src):
         """Proposer phản hồi gói tin BODY chứa danh sách txs khi peer gửi REQUEST_BODY."""
         if src is None:
             return
         txs = self.bodies.get(block_hash)
+        if txs is None:
+            txs = next((b.txs for b in self.ledger if b.hash() == block_hash), None)
         if txs is None:
             return self.log("REJECT", reason="body_not_found",
                             block=block_hash.hex()[:8])
@@ -488,20 +645,31 @@ class Node:
         2. Thẩm định mã băm Merkle `tx_root` và mã băm khối `block_hash`.
         3. Chuyển tiếp vào hàm `on_proposal` để xử lý bỏ phiếu.
         """
+        if (not isinstance(payload, (tuple, list)) or len(payload) != 2
+                or not isinstance(payload[0], bytes) or len(payload[0]) != 32
+                or not isinstance(payload[1], (tuple, list))):
+            return self.log("REJECT", reason="bad_body_format", height=self.height)
         block_hash, txs = payload
-        self.bodies[block_hash] = tuple(txs)
         hd = self.pending_headers.get(block_hash)
         if hd is None:
             return self.log("REJECT", reason="body_without_header",
                             block=block_hash.hex()[:8])
         block = Block(hd, tuple(txs))
+        if not all(valid_tx_fields(tx) for tx in block.txs):
+            return self.log("REJECT", reason="bad_tx_format", height=hd.height)
         if hd.tx_root != tx_root(block.txs):
             return self.log("REJECT", reason="bad_tx_root",
                             height=hd.height)
         if block.hash() != block_hash:
             return self.log("REJECT", reason="body_header_mismatch",
                             height=hd.height)
+        if block_hash in self.sync_pending:
+            cert = self.sync_pending.pop(block_hash)
+            self.on_sync_response(SyncResp("peer", ((block, cert),)))
+            return
         self.on_proposal(block)
+        if block_hash in self.blocks:
+            self.bodies[block_hash] = block.txs
         if self.height == hd.height:
             self.run()
 
@@ -519,8 +687,12 @@ class Node:
             return self.log("REJECT", reason="bad_pol_round", height=hd.height)
         if hd.tx_root != tx_root(b.txs):
             return self.log("REJECT", reason="bad_tx_root", height=hd.height)
-        self.check_block(b)
         if hd.height == self.height:
+            if not self.check_block(b):
+                self.bodies.pop(b.hash(), None)
+                if hd.round == self.round and self.step == "PROPOSE":
+                    self.cast("PREVOTE", NIL)
+                return
             self.keep_first(self.proposals, b)
             self.blocks.setdefault(b.hash(), b)
         else:
@@ -536,6 +708,9 @@ class Node:
            - Nếu voter gửi 2 phiếu khác nhau cho cùng một slot -> Phát hiện và ghi log EQUIVOCATION!
         3. Cập nhật bảng đếm phiếu `self.votes`.
         """
+        if (not isinstance(v, Vote) or not isinstance(v.voter, str)
+                or not isinstance(v.block_hash, bytes) or len(v.block_hash) not in (0, 32)):
+            return self.log("REJECT", reason="bad_vote_format", height=self.height)
         if v.kind not in KINDS or not self.in_window(v.height, v.round):
             return
         pk = self.ctx["vpks"].get(v.voter)
@@ -643,6 +818,20 @@ class Node:
         """
         while not self.done:
             h, r = self.height, self.round
+            # A quorum can arrive after PREVOTE timed out. Record it without
+            # signing a second PRECOMMIT or regressing a newer lock.
+            candidates = set(self.proofs)
+            for (hh, rr, kind), vs in self.votes.items():
+                if hh == h and rr <= r and kind == "PREVOTE":
+                    candidates.update((hh, rr, target) for target, count in
+                                      Counter(v.block_hash for v in vs.values()).items()
+                                      if target != NIL and count >= self.Q)
+            for hh, rr, target in sorted(candidates):
+                if (hh == h and rr <= r and target in self.blocks
+                        and (self.locked is None or rr > self.locked[1])
+                        and self.check_block(self.blocks[target])):
+                    self.locked = (target, rr)
+                    self.log("LOCK", height=h, round=rr, block=target.hex()[:8])
             if self.step == "PROPOSE":
                 b = self.proposals.get((h, r))
                 if b is not None:
@@ -659,8 +848,6 @@ class Node:
                             self.cast("PRECOMMIT", NIL)
                             done = True
                         elif t in self.blocks and self.check_block(self.blocks[t]):
-                            self.locked = (t, r)
-                            self.log("LOCK", height=h, round=r, block=t.hex()[:8])
                             self.cast("PRECOMMIT", t)
                             done = True
                         break
@@ -691,6 +878,12 @@ class Node:
         - Timeout PRECOMMIT: Hết giờ chờ precommit -> Tăng round (`start_round(r + 1)`).
         - Timeout ROUND: Hết giờ cả round -> Chủ động gọi `request_sync()` rồi tăng round.
         """
+        if key[0] == "BODY_RETRY":
+            _, h, r, bh, src = key
+            if not self.done and h == self.height and bh not in self.blocks and bh in self.pending_headers:
+                self.send_to(src, ("REQUEST_BODY", bh))
+                self.net.set_timeout(self.idx, self.timeout_len(self.round), key)
+            return
         kind, h, r = key
         if self.done or h != self.height or r != self.round:
             return
@@ -717,7 +910,8 @@ class Node:
         6. Giải phóng bộ nhớ của các round cũ và chuyển sang Height kế tiếp (`start_height(h + 1)`).
         """
         s, err = apply_txs(self.state, b.txs, self.ctx["chain_id"], self.ctx["acct_pks"])
-        assert err is None, err
+        if err is not None or s.hash() != b.header.state_hash:
+            raise ValueError(f"invalid finalized execution: {err or 'bad_state_hash'}")
         self.state = s
         self.ledger.append(b)
         if cert is not None:
@@ -730,11 +924,14 @@ class Node:
             self.seen_tx_hashes.add(H(encode(t.body())))
 
         h = b.header.height
-        self.log("FINALIZE", height=h, round=b.header.round,
+        self.log("FINALIZE", height=h, round=cert.round if cert is not None else b.header.round,
                  block=b.hash().hex()[:8], state=s.hash().hex()[:8])
         self.votes = {k: v for k, v in self.votes.items() if k[0] > h}
         self.future = {k: v for k, v in self.future.items() if k[0] > h}
         self.future_blocks = {k: v for k, v in self.future_blocks.items() if k[0] > h}
-        self.bodies = {bh: txs for bh, txs in self.bodies.items()
-                       if bh != b.hash()}
+        # Old alternative proposals are no longer needed. Finalized bodies are
+        # served from ledger, and future complete blocks have their own buffer.
+        self.bodies.clear()
+        self.proofs = {key: proof for key, proof in self.proofs.items() if key[0] > h}
+        self.sync_pending = {bh: c for bh, c in self.sync_pending.items() if c.height > h}
         self.start_height(h + 1)

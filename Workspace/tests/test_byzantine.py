@@ -66,7 +66,7 @@ class TestSilent(unittest.TestCase):
     def test_proposer_mode_votes_but_never_proposes(self):
         nodes, net = make_nodes(behaviors={1: (Silent, {"mode": "proposer"})}, start=False)
         start_all(nodes)
-        self.assertEqual([m for _, m in sent_by(net, 1) if m[0] == "PROPOSAL"], [])
+        self.assertEqual([m for _, m in sent_by(net, 1) if m[0] in ("PROPOSAL", "HEADER")], [])
         self.assertEqual(len(events(net, "BYZ_SKIP_PROPOSE", node="V1")), 1)
         nodes[1].on_timeout(("PROPOSE", 1, 0))  # hết giờ chờ proposal -> prevote NIL như honest
         (dst, (kind, vote)), = sent_by(net, 1)
@@ -289,7 +289,9 @@ class TestInvalidBlock(unittest.TestCase):
     def test_network_every_honest_rejects_and_chain_continues(self):
         for mode, reason in REJECT_MODES.items():
             with self.subTest(mode=mode):
-                net = run_checked(self, {1: (InvalidBlock, {"mode": mode})})
+                net = run_checked(self, {1: (InvalidBlock, {"mode": mode})},
+                                  gst=0, delta=1, rate_limit=None, peer_block=None,
+                                  duplicate_probability=0, pre_gst_reorder_probability=0)
                 bad = net.nodes[1].evidence[0].hash()
                 for nd in net.nodes[2:]:  # mọi honest
                     self.assertTrue(log_events(net, "REJECT", node=nd.name, reason=reason))

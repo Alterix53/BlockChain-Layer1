@@ -6,11 +6,11 @@ Cùng một chiến lược tấn công (ForkCoalition, Byzantine = V1, V7, V8; 
   - n=9,  f=3, Q=7:                            không fork nhưng không ai chốt được (mất liveness).
 Hai quorum Q trong n node giao nhau ít nhất 2Q-n node: n9/Q6 -> 3 (có thể toàn Byzantine),
 n10/Q7 -> 4 > f (luôn có >= 1 honest, mà honest không ký hai phía).
-Chạy trên Net thật của A. Việc chia nhóm do Byzantine quyết định (gửi riêng bằng Net.send):
-nhóm R không bao giờ nhận block A, nhóm L không nhận B, nên không cần mạng bị chia cắt.
-Fork ở n=9 là CÓ THỂ xảy ra chứ không chắc chắn: kẻ tấn công cần tin tới kịp lúc. Với mạng xấu
-ngẫu nhiên trước GST (gst=5000), nhóm L hết giờ trước khi gom đủ phiếu cho A, rồi cả mạng cùng
-chốt B. Ở n=10 thì không lịch mạng nào tạo được fork.
+Với lịch partition có chủ đích, kết quả giống nhau khi gst=5000 và gst=0:
+nhóm R không nhận block A kịp slot tấn công. Partition giữ pipeline production;
+trễ nội bộ nhóm được giới hạn để hoàn thành HEADER/BODY trước timeout.
+Lịch random từ main được kiểm riêng: ở seed cố định, n9/Q6 không fork nhưng
+vẫn tiến triển; n10/Q7 giữ an toàn và tiến triển.
 Hai CommitCertificate (của D) của hai nhánh đều hợp lệ: node mới đồng bộ sẽ theo nhánh nào là
 tùy peer nào trả lời. Certificate chỉ đáng tin khi n >= 3f+1. Ở n=10, nhóm không chốt được
 tự hỏi đồng bộ (SYNC_REQ) sau một round thất bại và bắt kịp bằng certificate của nhóm kia.
@@ -43,13 +43,42 @@ RIGHT_N9 = (4, 5, 6)
 RIGHT_N10 = (4, 5, 6, 9)
 
 
-# Mạng xấu trước GST (Net của A): trễ lớn, đảo thứ tự, nhân bản tin. gst=0: mạng tốt ngay từ đầu.
+# Random pre-GST schedule from main; controlled partition from Code-review.
 BAD_BEFORE_GST = dict(pre_gst_max_delay=300, pre_gst_reorder_probability=0.2,
                       duplicate_probability=0.1)
 
 
-def run_experiment(n, q, right, f=3, seed=7, gst=0):
-    net = Net(dict(n=n, seed=seed, delta=20, gst=gst, **(BAD_BEFORE_GST if gst else {})))
+class PartitionNet(Net):
+    """Keep the production pipeline; hold cross-partition transmissions until GST."""
+
+    def __init__(self, cfg, side):
+        super().__init__(cfg)
+        self.gst, self.side = cfg["gst"], side  # side: idx -> "L" / "R" (Byzantine: không có)
+
+    def _transmit(self, src, dst, msg):
+        a, b = self.side.get(src), self.side.get(dst)
+        if self.now < self.gst and a and b and a != b:
+            self.log(self.nodes[src].name, "DELAY", type=self._unwrap(msg)[0],
+                     height=self._message_height(msg), dst=self.nodes[dst].name,
+                     reason="test_partition", until=self.gst)
+            self.push(self.gst, "SEND_READY", src, dst, msg)
+            return
+        super()._transmit(src, dst, msg)
+
+
+def run_experiment(n, q, right, f=3, seed=7, gst=5000, network="partition"):
+    cfg = dict(n=n, seed=seed, delta=20, gst=gst)
+    if network == "partition":
+        # Only the explicit partition delays traffic in this schedule. HEADER/BODY
+        # exchanges within a group must finish before its round-zero timeout.
+        cfg.update(pre_gst_max_delay=20, pre_gst_reorder_probability=0,
+                   pre_gst_drop_probability=0, duplicate_probability=0)
+        side = {i: "L" for i in LEFT} | {i: "R" for i in right}
+        net = PartitionNet(cfg, side)
+    elif network == "random":
+        net = Net(dict(cfg, **(BAD_BEFORE_GST if gst else {})))
+    else:
+        raise ValueError("unknown test network schedule")
     vals = [f"V{i}" for i in range(n)]
     vkps = [KeyPair(f"val-{seed}-{i}".encode()) for i in range(n)]
     alice = KeyPair(f"acct-{seed}-Alice".encode())
@@ -91,11 +120,17 @@ def fresh_node_syncs(ex, block, cert):
 
 class TestQuorumBoundary(unittest.TestCase):
     def test_n9_q6_breaks_safety(self):
-        self.check_n9_fork(run_experiment(n=9, q=6, right=RIGHT_N9))
+        for gst in (5000, 0):
+            with self.subTest(gst=gst):
+                ex = run_experiment(n=9, q=6, right=RIGHT_N9, gst=gst)
+                if gst:
+                    self.assertTrue(log_events(ex.net, "DELAY", reason="test_partition"),
+                                    "the controlled partition must actually delay traffic")
+                self.check_n9_fork(ex)
 
     def test_n9_q6_fork_needs_timely_delivery(self):
         # cùng tấn công, nhưng mạng trễ ngẫu nhiên trước GST: lịch tấn công hỏng, không fork
-        ex = run_experiment(n=9, q=6, right=RIGHT_N9, gst=5000)
+        ex = run_experiment(n=9, q=6, right=RIGHT_N9, gst=5000, network="random")
         assert_honest_safety(ex.nodes, ex.byz)
         assert_honest_progress(ex.nodes, ex.byz, heights=1)
 
@@ -132,6 +167,24 @@ class TestQuorumBoundary(unittest.TestCase):
         for gst in (5000, 0):
             with self.subTest(gst=gst):
                 ex = run_experiment(n=10, q=7, right=RIGHT_N10, gst=gst)
+                a, b = (blk.hash() for blk in ex.coalition.blocks)
+                assert_honest_safety(ex.nodes, ex.byz)
+                assert_honest_progress(ex.nodes, ex.byz, heights=1)
+                assert_honest_certificates(ex.nodes, ex.byz)
+                fin = honest_finalized(ex.nodes, ex.byz)[1]
+                self.assertEqual(list(fin), [b], "chỉ có block B được chốt, A thì không")
+                # R tự chốt (4 + 3 = 7 = Q). L chỉ có 3 + 3 = 6 < Q và không có thân B, nên
+                # sau một round thất bại tự hỏi đồng bộ và bắt kịp bằng certificate của R
+                self.assertEqual(synced_nodes(ex), ["V0", "V2", "V3"])
+                self.assertEqual(sorted({r["node"] for r in log_events(ex.net, "SYNC_REQUEST")}),
+                                 ["V0", "V2", "V3"])
+                self.assertTrue(any("ev=BYZ_EQUIVOCATE_VOTE" in x for x in ex.net.logs),
+                                "tấn công phải thực sự chạy")
+
+    def test_n10_q7_random_pre_gst_is_safe(self):
+        for gst in (5000, 0):
+            with self.subTest(gst=gst, network="random"):
+                ex = run_experiment(n=10, q=7, right=RIGHT_N10, gst=gst, network="random")
                 a, b = (blk.hash() for blk in ex.coalition.blocks)
                 assert_honest_safety(ex.nodes, ex.byz)
                 assert_honest_progress(ex.nodes, ex.byz, heights=1)

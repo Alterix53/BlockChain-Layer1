@@ -1,0 +1,4 @@
+{
+  "description": "Private trusted-setup fixture for the educational simulator, not production credentials; keep fixed for reproducibility.",
+  "master_secret": "05268bfc95276651de3ab3012d898b81d361fdfd19ed70aec79112da0a207ccd"
+}

@@ -153,10 +153,21 @@ for t, c in sorted(Counter(v.block_hash for v in pv.values()).items()):
 - **Điều kiện**: Node chỉ được Prevote cho $B'$ nếu nó quan sát thấy một **Quorum $\ge 2f + 1$ phiếu PREVOTE hợp lệ cho $B'$ ở một round muộn hơn** round mà nó đang bị khóa!
 - **Mã nguồn trong [node.py: dòng 171](file:///e:/DISK_D/MDUY/Nam4/4.1%20Blockchain/Lab1/Workspace/src/node.py#L171)**:
 ```python
-can = self.check_block(b) and (self.locked is None or self.locked[0] == bh)
-self.cast("PREVOTE", bh if can else NIL)
+if not self.check_block(b):
+    target = NIL
+elif self.locked is not None and self.locked[0] == bh:
+    target = bh
+elif b.header.pol_round < 0:
+    target = bh if self.locked is None else NIL
+elif not self.polka(b.header.height, b.header.pol_round, bh):
+    target = None  # Chờ bằng chứng POLKA có Q PREVOTE đã xác minh.
+else:
+    target = bh if self.locked is None or self.locked[1] < b.header.pol_round else NIL
 ```
-*Ghi chú*: Trong phiên bản tối thiểu của Lab 01, nếu node đang bị khóa ở block khác (`self.locked[0] != bh`), node sẽ bỏ phiếu `NIL`, đảm bảo an toàn tuyệt đối không vi phạm khóa cũ.
+*Ghi chú*: Khóa khác không có nghĩa phải bầu NIL mãi mãi. Quorum PREVOTE hợp lệ ở round
+mới hơn cho phép đổi block theo luật 5. Proposer truyền các phiếu gốc bằng POLKA;
+receiver không tin riêng trường pol_round. Quorum tới sau timeout vẫn cập nhật lock,
+nhưng không làm validator ký PRECOMMIT lần thứ hai. Xem IMPLEMENTATION.md cho luồng hiện hành.
 
 ---
 

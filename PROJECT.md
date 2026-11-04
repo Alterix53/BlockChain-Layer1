@@ -1,5 +1,8 @@
 # Project: Lab 01 Blockchain Layer 1 Minimal (Tendermint BFT & DES)
 
+> Các milestone bên dưới là kế hoạch lịch sử. Implementation hiện hành được mô tả tại
+> `Document/IMPLEMENTATION.md`; không dùng trạng thái hoặc file layout cũ làm oracle kiểm thử.
+
 ## Architecture
 - **Consensus Engine (`src/node.py`, `src/byzantine.py`)**: Tendermint BFT finite state machine implementing 7 golden rules (Proposal, Prevote, Precommit, Commit, Round timeout, 2-step block propagation with Header and Body, Locking and ValidRound rules).
 - **Discrete Event Simulation (`src/sim.py`)**: Event queue with virtual time `now`, priority queue by timestamp, network delays, packet drops, rate limiting, and Global Stabilization Time (GST).
