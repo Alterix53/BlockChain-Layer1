@@ -12,7 +12,13 @@ cd Workspace
 python -m pip install -r requirements.txt
 python -m src.main --config config/default.json --twice
 python -m unittest discover -s tests -v
+python -X utf8 -B -m tests -v
 ```
+
+Lệnh cuối chạy suite kèm event log riêng từng test trong
+`Workspace/logs/tests/run-<unique>/`; `summary.json` ánh xạ tên test, kết quả và
+file log. Đường dẫn được in cuối lần chạy. Xem [hướng dẫn test](Workspace/tests/README.md).
+Log sinh ra được Git ignore.
 
 Từ root repo cũng chạy được `python -m Workspace.src.main --twice`.
 CLI ghi `Workspace/logs/run.log` và `run.second.log`; đổi bằng `--log`.

@@ -8,6 +8,36 @@ python -X utf8 -B -m unittest discover -s tests -v
 
 This uses standard-library unittest and the simulator's cryptography dependency. It includes T1–T8, unit tests, deterministic regressions, CLI subprocess tests and the mutation gate. CLI tests write only into automatically cleaned temporary directories; `-B` avoids bytecode artifacts.
 
+## Save event logs for each test
+
+From `Workspace`, run the same suite with the optional logging runner:
+
+```powershell
+python -X utf8 -B -m tests -v
+```
+
+Each invocation creates `Workspace/logs/tests/run-<unique>/`. Open `summary.json`
+to map complete test IDs and outcomes to their individual `.log` files. The runner
+prints both paths when it finishes. Use `--log-dir <directory>` to change the parent
+directory, or select a single test by its unittest ID:
+
+```powershell
+python -X utf8 -B -m tests -v tests.e2e.test_t1_normal
+```
+
+Event files observe the real simulator and unit-test logger without replacing their
+behavior. A `network=N` prefix distinguishes simulator instances within one test,
+including repeated T8 runs. CLI subprocess logs and captured output are copied
+before temporary files are removed. Failures include their original traceback;
+tests without network activity still have an outcome record. Mutation tests can
+contain deliberately faulty events: their PASS means the designated assertion
+detected the mutant, not that every recorded simulation succeeded.
+
+The standard unittest command above remains available without persistent event
+logs. Generated files under `logs/` are ignored by Git. Logging itself has regression
+tests for preserving event collections, assertion failures, fixture errors, CLI
+exit codes and the result index.
+
 ## Independent checks
 
 `independent_oracle.py` computes canonical bytes, SHA-256 commitments, transaction replay and Ed25519 verification independently of production `encode`, `hash`, `verify`, execution and safety-check functions. It checks every honest node's ledger, parent links, transaction ownership/nonces, state, proposer and finality certificate. Explicit expected application data is also required in transaction-admission and sparse-topology scenarios.
@@ -16,7 +46,7 @@ Do not use production output as the expected answer without a separate contract 
 
 ## Organization
 
-- `unit/`: executor unit tests.
+- `unit/`: executor and optional event-logging unit tests.
 - `e2e/`: T1–T8 and catch-up scenarios.
 - `regression/test_consensus.py`: vote, lock, proof and BODY regressions.
 - `regression/test_network.py`: partition, routing, limits and isolation regressions.
