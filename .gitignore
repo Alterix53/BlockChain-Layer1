@@ -17,7 +17,6 @@ logs/*.log
 .pytest_cache/
 .codegraph
 .agents/
-
 # Local editor / AI integrations (project-wide instructions stay in AGENTS.md)
 /.claude/
 /.codex/
@@ -26,6 +25,8 @@ logs/*.log
 /.vscode/
 /.mcp.json
 /GEMINI.md
+/REVIEW.md
+/AGENTS.md
 
 # Disposable review probes and generated artifacts
 /.review-tmp/

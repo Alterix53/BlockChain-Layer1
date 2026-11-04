@@ -5,6 +5,7 @@ import os
 import re
 from dataclasses import replace
 
+from src.byzantine import REGISTRY
 from src.common import (Block, CommitCertificate, Header, KeyPair, Tx, Vote, sign, tx_root,
                         verify)
 from src.execution import apply_txs
@@ -154,11 +155,12 @@ def load_cfg(**overrides):
 
 
 def run_with_byzantine(behaviors, **cfg_overrides):
-    """Exercise the public JSON factory; unit fixtures alone construct classes directly."""
-    from src.byzantine import REGISTRY
-    names = {cls: name for name, cls in REGISTRY.items()}
-    byzantine = {str(idx): dict(behavior=names[cls], **(params or {}))
-                 for idx, (cls, params) in behaviors.items()}
+    """Chạy run_sim THẬT (mạng sim.py, config mặc định) nhưng thay vài validator bằng lớp
+    Byzantine. behaviors = {idx: (Lớp, {tham số})} được đổi thành mục "byzantine" của config,
+    để main.py tự tạo node qua factory make_node (giống chạy bằng file config)."""
+    name_of = {cls: name for name, cls in REGISTRY.items()}
+    byzantine = {str(idx): {"behavior": name_of[cls], **(params or {})}
+                 for idx, (cls, params) in sorted(behaviors.items())}
     return run_sim(load_cfg(byzantine=byzantine, **cfg_overrides))
 
 

@@ -155,8 +155,11 @@ class TestEquivocateProposer(unittest.TestCase):
         for blk in (a, b):
             self.assertTrue(verify(prop.kp.pk, "HEADER:" + CHAIN, blk.header.body(), blk.header.sig))
             self.assertEqual(receiver._check(blk), (True, ""), "cả hai block đều phải hợp lệ")
-        for dst, (_, blk) in sent_by(net, 1):
-            self.assertEqual(blk.hash(), a.hash() if dst in (0, 2) else b.hash())
+        # giao thức 2 bước: mỗi nhóm chỉ nhận HEADER của block dành cho nó
+        sent = sent_by(net, 1)
+        self.assertEqual(sorted(dst for dst, _ in sent), [0, 2, 3, 4])
+        for dst, (kind, hd) in sent:
+            self.assertEqual((kind, hd), ("HEADER", (a if dst in (0, 2) else b).header))
 
     def test_without_valid_tx_falls_back_to_honest(self):
         nodes, net = make_nodes(behaviors={1: (EquivocateProposer, {})}, start=False)
@@ -166,12 +169,16 @@ class TestEquivocateProposer(unittest.TestCase):
         self.assertEqual(len(proposals), 1)
         self.assertEqual(len(events(net, "BYZ_SKIP", node="V1", reason="no_valid_tx")), 1)
 
-    def test_groups_need_net_send_from_part_a(self):
+    def test_each_group_gets_the_body_of_its_own_header(self):
         nodes, net = make_nodes(behaviors={1: (EquivocateProposer, {"groups": ([0], [2])})},
                                 start=False)
-        net.send = None  # giống Net thật hiện tại: chưa có send
-        with self.assertRaisesRegex(RuntimeError, "send"):
-            nodes[1].start()
+        start_all(nodes)
+        a, b = nodes[1].evidence
+        net.clear()
+        for dst, blk in ((0, a), (2, b)):  # node xin thân theo hash header nó đã thấy
+            nodes[1].on_message(("REQUEST_BODY", blk.hash()), dst)
+        bodies = [(dst, m[1]) for dst, m in sent_by(net, 1) if m[0] == "BODY"]
+        self.assertEqual(bodies, [(0, (a.hash(), a.txs)), (2, (b.hash(), b.txs))])
 
     def test_receiver_keeps_first_proposal_and_logs_equivocation(self):
         nodes, net = make_nodes(behaviors={1: (EquivocateProposer, {"groups": ([0], [2])})},
