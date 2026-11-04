@@ -26,10 +26,16 @@ slide không tự động trở thành yêu cầu lập trình của mô phỏng
   cùng height/round/hash và Q signer khác nhau; pol_round tuyên bố không đủ làm proof.
 - HEADER → duyệt → REQUEST_BODY → BODY kiểm root/tx trước khi lưu. BODY không có
   header không được cache. Request có retry; buffer có cận.
+  Mỗi slot giữ tối đa hai phương án chưa có chứng chỉ finality. Đổi round thu hồi
+  header cũ không còn proof/lock; proposal hiện tại và chứng chỉ hợp lệ được ưu tiên
+  hơn header speculative để tránh buffer starvation.
 - Catch-up: SYNC_REQ → SYNC_HEADERS (header + PRECOMMIT certificate) → REQUEST_BODY
   → BODY → kiểm certificate/parent/execution/root → finalize. Ledger phục vụ body
   đã chốt. Handler SYNC_RESP đầy đủ còn dùng để kiểm chứng bằng chứng/tương thích
   unit fixture; sender production dùng handshake header trước.
+  Sync kiểm định dạng envelope/field trước phép toán và xác minh chữ ký. Block đã
+  có trong blocks được kiểm đầy đủ với certificate để finalize, không phụ thuộc
+  body cache riêng. Duplicate certificate không execute lần hai.
 - `sim.py`: heap `(time,sequence,...)`, RNG riêng theo seed, deepcopy từng delivery.
   Receiver không sửa được certificate map của sender. Định tuyến qua các hop thật;
   không đọc ledger/state node khác để quyết định đồng thuận.
@@ -46,6 +52,8 @@ admission; chờ được log trước SEND. Trước GST có thể mất/trễ/
 không hủy frame đã truyền vì receive throttling. Sau GST, đường nhiều hop đặt trước
 toàn bộ slot truyền; các hop chia cùng một ngân sách sao cho tổng delay <= delta.
 Relay dùng slot đã đặt, không đưa frame đang truyền vào hàng đợi không giới hạn.
+Admission kiểm cả cửa sổ kết thúc ở reservation tương lai: traffic đến sau không
+được chèn trước một relay đã đặt nếu làm vượt ngân sách SEND thực tế.
 Do đó cận delta áp toàn tuyến từ SEND đầu tới nhận cuối, không phải delta mỗi hop.
 Chờ admission trước SEND được log riêng; phải tính nó khi chọn timeout/t_end.
 

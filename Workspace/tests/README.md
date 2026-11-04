@@ -21,11 +21,21 @@ Do not use production output as the expected answer without a separate contract 
 - `regression/test_consensus.py`: vote, lock, proof and BODY regressions.
 - `regression/test_network.py`: partition, routing, limits and isolation regressions.
 - `regression/test_cli.py`: configuration and subprocess CLI regressions.
+- `regression/test_review_fixes.py`: audit counterexamples for header-buffer starvation,
+  malformed sync, cached-block finality and future relay reservations.
 - `regression/fixtures.py`: shared regression inputs, without production expected-value logic.
 - `test_mutation_gate.py`: seven in-memory mutation gates.
 - `independent_oracle.py`: separate expected-value implementation.
 
 ## Fault schedules
+
+- T1 explicitly uses GST=0, bounded nonzero delay, no Byzantine, no drop/duplicate/reorder
+  and no throttling pressure. It asserts the absence of fault/timeout events and keeps
+  the exact chain/state/nonce and round-zero checks, including certificate rounds.
+- Every T8 scenario requires both runs to finish on all expected honest nodes, checks
+  state/data/nonces and ledger agreement using the independent oracle, and compares
+  serialized UTF-8 log bytes. Negative controls reject identical incomplete runs and
+  errors on V9 even when V0 and the logs remain unchanged.
 
 - T4 starts with empty mempools and seen sets, sends the first valid transaction through `Net.send`, observes dissemination, and replays before and after commit.
 - Byzantine E2E scenarios use the production JSON factory. They do not replace `src.main.Node`.
@@ -34,6 +44,13 @@ Do not use production output as the expected answer without a separate contract 
 - Focused cases cover late quorum without signing twice, round 1001, poisoned/missing bodies, sync header/certificate/body order, isolated certificate dictionaries, global post-GST delivery bounds including routed traffic under outbound pressure, bootstrap deduplication, config/namespace guards, incomplete CLI runs and independent-process determinism.
 
 ## Mutation semantics
+
+The initial five audit regression methods failed against f089931 before the fixes,
+including malformed-sync exceptions. A sixth case checks current-header admission
+under future-round pressure while preserving proven headers. These cases require
+honest completion, logged rejection with continued execution, authenticated exactly-once
+sync, every actual SEND window and the global delivery bound. Existing assertions
+and the seven mutation gates were not relaxed.
 
 `test_mutation_gate.py` applies and restores seven in-memory patches: disabled transaction admission/gossip, bypassed production Byzantine factory, invalid-signature acceptance, wrong-domain acceptance, nonce-guard bypass, duplicate-vote counting and state-root-check bypass. Each must fail its designated behavioral assertion. An unrelated exception or fixture crash does not count as a killed mutant.
 

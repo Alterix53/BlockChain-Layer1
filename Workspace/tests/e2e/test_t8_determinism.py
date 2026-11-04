@@ -13,15 +13,67 @@ Mục tiêu & Cơ sở kỹ thuật:
   + Bộ đếm seq phá vỡ thế hòa (Tie-Breaking) trong hàng đợi ưu tiên của DES.
 """
 import unittest
+from unittest import mock
 from src.byzantine import EquivocateProposer, Silent
 from src.main import run_sim
 from tests.c_helpers import (
     load_cfg,
     run_with_byzantine,
 )
+from tests.independent_oracle import assert_finalized, digest
 
 
 class TestT8Determinism(unittest.TestCase):
+    def _assert_complete_deterministic_runs(self, net1, net2, cfg, byzantine=()):
+        """Equal logs alone must not let two stalled or incorrect runs pass."""
+        expected_names = {f"V{i}" for i in range(cfg["n"])} - set(byzantine)
+        count = cfg["txs_per_account"]
+        expected_data = {f"{a}/msg": f"v{count}" for a in cfg["accounts"]} if count else {}
+        expected_nonces = {a: count for a in cfg["accounts"]} if count else {}
+        expected_hash = digest([sorted(expected_data.items()), sorted(expected_nonces.items())])
+        raw_logs = [("\n".join(net.logs) + "\n").encode("utf-8") for net in (net1, net2)]
+        self.assertEqual(raw_logs[0], raw_logs[1], "serialized UTF-8 logs must match byte for byte")
+        runs = []
+        for net in (net1, net2):
+            honest = {nd.name: nd for nd in net.nodes if not nd.is_byzantine}
+            self.assertEqual(set(honest), expected_names)
+            for nd in honest.values():
+                self.assertTrue(nd.done, f"{nd.name} did not finish")
+                self.assertEqual(len(nd.ledger), cfg["heights"], nd.name)
+                self.assertEqual(nd.state.data, expected_data, nd.name)
+                self.assertEqual(nd.state.nonces, expected_nonces, nd.name)
+                self.assertEqual(nd.state.hash(), expected_hash, nd.name)
+            assert_finalized(net.nodes, cfg["heights"], expected_data, expected_nonces)
+            runs.append(honest)
+        reference = [b.hash() for b in runs[0][sorted(expected_names)[0]].ledger]
+        for name in sorted(expected_names):
+            first, second = runs[0][name], runs[1][name]
+            self.assertEqual([b.hash() for b in first.ledger], reference, name)
+            self.assertEqual([b.hash() for b in second.ledger], reference, name)
+            self.assertEqual(first.state.hash(), second.state.hash(), name)
+
+    def test_t8_rejects_identically_incomplete_runs(self):
+        cfg = load_cfg(t_end=0, heights=1, accounts=["Alice"], txs_per_account=1)
+        first, second = run_sim(cfg), run_sim(cfg)
+        self.assertEqual(first.logs, second.logs)
+        with self.assertRaisesRegex(AssertionError, "did not finish"):
+            self._assert_complete_deterministic_runs(first, second, cfg)
+
+    def test_t8_checks_every_honest_node_not_just_node_zero(self):
+        cfg = load_cfg(gst=0, delta=1, heights=1, accounts=["Alice"], txs_per_account=1,
+                       duplicate_probability=0, rate_limit=None, peer_block=None)
+        first, second = run_sim(cfg), run_sim(cfg)
+        self._assert_complete_deterministic_runs(first, second, cfg)
+        node = second.nodes[9]
+        corruptions = [(node, "done", False), (node, "ledger", []),
+                       (node.state, "data", {"Alice/msg": "wrong"}),
+                       (node.state, "nonces", {"Alice": 99}),
+                       (node.state, "hash", lambda: b"x" * 32)]
+        for target, field, value in corruptions:
+            with self.subTest(field=field), mock.patch.object(target, field, value):
+                with self.assertRaises(AssertionError):
+                    self._assert_complete_deterministic_runs(first, second, cfg)
+
     def test_t8_default_config_rerun_twice(self):
         """
         Chạy 2 lần liên tiếp với cấu hình mặc định (seed 42).
@@ -33,6 +85,7 @@ class TestT8Determinism(unittest.TestCase):
 
         cfg2 = load_cfg(seed=42)
         net2 = run_sim(cfg2)
+        self._assert_complete_deterministic_runs(net1, net2, cfg1)
 
         # 1. Khớp từng byte nhật ký log
         self.assertEqual(net1.logs, net2.logs,
@@ -61,6 +114,7 @@ class TestT8Determinism(unittest.TestCase):
                 cfg = load_cfg(seed=seed, heights=3)
                 net1 = run_sim(cfg)
                 net2 = run_sim(cfg)
+                self._assert_complete_deterministic_runs(net1, net2, cfg)
 
                 self.assertEqual(net1.logs, net2.logs,
                                  f"Logs phải trùng khớp tuyệt đối với seed {seed}")
@@ -82,6 +136,7 @@ class TestT8Determinism(unittest.TestCase):
         )
         net1 = run_sim(cfg)
         net2 = run_sim(cfg)
+        self._assert_complete_deterministic_runs(net1, net2, cfg)
 
         self.assertEqual(net1.logs, net2.logs,
                          "Logs phải trùng khớp trong điều kiện mạng hỗn loạn")
@@ -98,6 +153,8 @@ class TestT8Determinism(unittest.TestCase):
         }
         net1 = run_with_byzantine(behaviors, seed=123, heights=3)
         net2 = run_with_byzantine(behaviors, seed=123, heights=3)
+        self._assert_complete_deterministic_runs(net1, net2, load_cfg(seed=123, heights=3),
+                                                 byzantine={"V1", "V4"})
 
         self.assertEqual(net1.logs, net2.logs,
                          "Logs phải trùng khớp khi có validator Byzantine")

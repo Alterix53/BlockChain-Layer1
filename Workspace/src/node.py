@@ -152,6 +152,13 @@ class Node:
         4. Kích hoạt cỗ máy trạng thái run().
         """
         self.round, self.step = r, "PROPOSE"
+        protected = set(self.sync_pending) | {bh for _, _, bh in self.proofs}
+        if self.locked is not None:
+            protected.add(self.locked[0])
+        self.pending_headers = {bh: hd for bh, hd in self.pending_headers.items()
+                                if hd.round >= r or bh in protected}
+        self.requested_bodies = {(bh, rr) for bh, rr in self.requested_bodies
+                                 if bh in self.pending_headers}
         self.log("ROUND_START", height=self.height, round=r)
         if self.proposer(self.height, r) == self.name:
             self.propose()
@@ -399,6 +406,9 @@ class Node:
         Xử lý khi nhận được yêu cầu đồng bộ từ peer khác:
         Trích xuất các khối đã finalize kèm CommitCertificate trong ledger và gửi phản hồi `SYNC_RESP`.
         """
+        if (not isinstance(req, SyncReq) or not isinstance(req.requester, str)
+                or not self._wire_int(req.from_height) or not self._wire_int(req.to_height)):
+            return self.log("REJECT_SYNC", reason="bad_sync_request", height=self.height)
         vals = self.ctx["vals"]
         if req.requester not in vals or req.requester == self.name:
             return
@@ -410,6 +420,12 @@ class Node:
             self.send_to(vals.index(req.requester), ("SYNC_HEADERS", chain_data))
 
     def certificate_error(self, cert, h, bh):
+        if (not isinstance(cert, CommitCertificate) or not self._wire_int(cert.height)
+                or not self._wire_int(cert.round) or not isinstance(cert.block_hash, bytes)
+                or len(cert.block_hash) != 32 or not isinstance(cert.signatures, dict)
+                or any(not isinstance(voter, str) or not isinstance(sig, bytes)
+                       for voter, sig in cert.signatures.items())):
+            return "bad_certificate_format"
         if cert.height != h or cert.block_hash != bh or type(cert.round) is not int or cert.round < 0:
             return "cert_mismatch"
         if not set(cert.signatures) <= set(self.ctx["vals"]):
@@ -424,7 +440,14 @@ class Node:
 
     def on_sync_headers(self, items, src):
         """Authenticate finalized headers before requesting any transaction bodies."""
-        for hd, cert in items[:self.max_ahead + 1]:
+        if not isinstance(items, (tuple, list)):
+            return self.log("REJECT_SYNC", reason="bad_sync_headers", height=self.height)
+        for item in items[:self.max_ahead + 1]:
+            if not isinstance(item, (tuple, list)) or len(item) != 2:
+                return self.log("REJECT_SYNC", reason="bad_sync_headers", height=self.height)
+            hd, cert = item
+            if not self._header_fields_ok(hd):
+                return self.log("REJECT_SYNC", reason="invalid_header", height=self.height)
             if not self.height <= hd.height <= self.height + self.max_ahead:
                 continue
             bh = Block(hd).hash()
@@ -459,11 +482,21 @@ class Node:
         6. Thực thi các giao dịch phải ra state_hash khớp hoàn toàn với cam kết trong Header.
         -> Nếu hợp lệ: finalize khối và bắt kịp mạng!
         """
-        for blk, cert in resp.chain_data:
+        if not isinstance(resp, SyncResp) or not isinstance(resp.chain_data, (tuple, list)):
+            return self.log("REJECT_SYNC", reason="bad_sync_response", height=self.height)
+        for item in resp.chain_data[:self.max_ahead + 1]:
+            if not isinstance(item, (tuple, list)) or len(item) != 2:
+                return self.log("REJECT_SYNC", reason="bad_sync_response", height=self.height)
+            blk, cert = item
+            if (not isinstance(blk, Block) or not self._header_fields_ok(blk.header)
+                    or not isinstance(blk.txs, (tuple, list))
+                    or not all(valid_tx_fields(tx) for tx in blk.txs)):
+                return self.log("REJECT_SYNC", reason="bad_sync_response", height=self.height)
             h = blk.header.height
             if h != self.height:
                 continue
-
+            if not isinstance(cert, CommitCertificate):
+                return self.log("REJECT_SYNC", reason="bad_certificate_format", height=h)
             if cert.height != h or cert.block_hash != blk.hash():
                 return self.log("REJECT_SYNC", reason="cert_mismatch", height=h)
             if blk.header.tx_root != tx_root(blk.txs):
@@ -475,14 +508,9 @@ class Node:
                     or not verify(pk, "HEADER:" + self.ctx["chain_id"], hd.body(), hd.sig)):
                 return self.log("REJECT_SYNC", reason="invalid_header", height=h)
 
-            if not set(cert.signatures) <= set(self.ctx["vals"]):
-                return self.log("REJECT_SYNC", reason="unknown_signer", height=h)
-            if len(cert.signatures) < self.Q:
-                return self.log("REJECT_SYNC", reason="insufficient_cert_sigs", height=h)
-            for voter, sig in sorted(cert.signatures.items()):
-                body = Vote("PRECOMMIT", h, cert.round, cert.block_hash, voter).body()
-                if not verify(self.ctx["vpks"][voter], "VOTE:" + self.ctx["chain_id"], body, sig):
-                    return self.log("REJECT_SYNC", reason="invalid_cert_sig", height=h)
+            error = self.certificate_error(cert, h, blk.hash())
+            if error:
+                return self.log("REJECT_SYNC", reason=error, height=h)
 
             if blk.header.parent != self.last_hash():
                 return self.log("REJECT_SYNC", reason="bad_parent_hash", height=h)
@@ -517,11 +545,7 @@ class Node:
         2. Nếu hợp lệ: lưu vào `pending_headers`.
         3. Gửi thông điệp `REQUEST_BODY` ngược lại cho proposer `src` để xin tải danh sách txs.
         """
-        if (not isinstance(hd, Header) or not isinstance(hd.proposer, str)
-                or any(type(value) is not int or not -(2**63) <= value < 2**63
-                       for value in (hd.height, hd.round, hd.pol_round))
-                or any(not isinstance(value, bytes) or len(value) != 32
-                       for value in (hd.parent, hd.state_hash, hd.tx_root))):
+        if not self._header_fields_ok(hd):
             return self.log("REJECT", reason="bad_header_format", height=self.height)
         certified = self.sync_pending.get(Block(hd).hash())
         if not self.in_window(hd.height, hd.round) and not (
@@ -542,11 +566,29 @@ class Node:
             return
         if hd.parent != self.last_hash():
             return self.log("REJECT", reason="bad_parent", height=hd.height)
-        if block_hash not in self.pending_headers and len(self.pending_headers) >= self.ctx.get("max_pending_headers", 256):
-            return self.log("REJECT", reason="header_buffer_full", height=hd.height)
+        if block_hash not in self.pending_headers:
+            # A faulty proposer cannot consume the entire height's admission
+            # budget with arbitrarily many signed alternatives in one slot.
+            same_slot = [old for old in self.pending_headers.values()
+                         if (old.height, old.round) == (hd.height, hd.round)]
+            if len(same_slot) >= 2 and certified is None:
+                return self.log("REJECT", reason="header_slot_full", height=hd.height)
+            if len(self.pending_headers) >= self.ctx.get("max_pending_headers", 256):
+                # Current proposals and authenticated finality have priority
+                # over speculative future-round headers, never over proofs.
+                protected = set(self.sync_pending) | {bh for _, _, bh in self.proofs}
+                if self.locked is not None:
+                    protected.add(self.locked[0])
+                victims = [bh for bh, old in self.pending_headers.items()
+                           if bh not in protected and (certified is not None or old.round != self.round)]
+                if not victims or (hd.round != self.round and certified is None):
+                    return self.log("REJECT", reason="header_buffer_full", height=hd.height)
+                del self.pending_headers[victims[0]]
         self.pending_headers[block_hash] = hd
         if block_hash in self.blocks:
             blk = Block(hd, self.blocks[block_hash].txs)
+            if certified is not None:
+                return self.on_sync_response(SyncResp("peer", ((blk, certified),)))
             self.on_proposal(blk)
             if self.height == hd.height:
                 self.run()
@@ -554,6 +596,8 @@ class Node:
         if block_hash in self.bodies:
             blk = Block(hd, self.bodies[block_hash])
             if hd.tx_root == tx_root(blk.txs):
+                if certified is not None:
+                    return self.on_body((block_hash, blk.txs))
                 self.on_proposal(blk)
                 if self.height == hd.height:
                     self.run()
@@ -569,6 +613,18 @@ class Node:
         self.send_to(src, ("REQUEST_BODY", block_hash))
         self.net.set_timeout(self.idx, self.timeout_len(self.round),
                              ("BODY_RETRY", hd.height, hd.round, block_hash, src))
+
+    @staticmethod
+    def _wire_int(value):
+        return type(value) is int and -(2**63) <= value < 2**63
+
+    @classmethod
+    def _header_fields_ok(cls, hd):
+        return (isinstance(hd, Header) and isinstance(hd.proposer, str)
+                and isinstance(hd.sig, bytes)
+                and all(cls._wire_int(value) for value in (hd.height, hd.round, hd.pol_round))
+                and all(isinstance(value, bytes) and len(value) == 32
+                        for value in (hd.parent, hd.state_hash, hd.tx_root)))
 
     def on_request_body(self, block_hash, src):
         """Proposer phản hồi gói tin BODY chứa danh sách txs khi peer gửi REQUEST_BODY."""

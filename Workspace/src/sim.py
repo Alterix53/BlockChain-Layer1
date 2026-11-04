@@ -1,6 +1,7 @@
 """Mạng mô phỏng: đồng hồ ảo, hàng đợi sự kiện và lỗi mạng có seed."""
 import heapq
 import random
+import struct
 from collections import deque
 from copy import deepcopy
 
@@ -214,11 +215,8 @@ class Net:
             for offset, budgets in zip(offsets, reservations):
                 for history, key, limit, window in budgets:
                     history[key] = [t for t in history.get(key, []) if t > self.now - window]
-                    while True:
-                        active = sorted(t for t in history[key] if start + offset - window < t <= start + offset)
-                        if len(active) < limit:
-                            break
-                        start = max(start, active[0] + window - offset)
+                    slot = self._available_slot(history[key], start + offset, limit, window)
+                    start = max(start, slot - offset)
             if start == previous:
                 break
         for offset, budgets in zip(offsets, reservations):
@@ -235,6 +233,15 @@ class Net:
             self._transmit(path[0], path[1], routed)
 
     def _message_height(self, msg):
+        # Logging inspects untrusted payloads before the receiver validates them.
+        # Malformed metadata must not abort delivery to the rejection handler.
+        try:
+            height = self._extract_message_height(msg)
+            return height if type(height) is int else 0
+        except (AttributeError, TypeError, ValueError, IndexError, OverflowError, struct.error):
+            return 0
+
+    def _extract_message_height(self, msg):
         """
         Trích xuất thuộc tính `height` (chiều cao block) từ thông điệp mạng.
         Hỗ trợ nhiều loại tin: PROPOSAL, HEADER, VOTE, BODY, REQUEST_BODY.
@@ -355,11 +362,11 @@ class Net:
             previous = candidate
             for history, key, limit, window in budgets:
                 history[key] = [t for t in history.get(key, []) if t > self.now - window]
-                active = sorted(t for t in history[key] if candidate - window < t <= candidate)
-                if len(active) >= limit:
+                slot = self._available_slot(history[key], candidate, limit, window)
+                if slot > candidate:
                     if history is self.peer_send_times:
                         peer_limited = True
-                    candidate = max(candidate, active[0] + window)
+                    candidate = slot
             if candidate == previous:
                 break
         for history, key, _, _ in budgets:
@@ -375,6 +382,25 @@ class Net:
                      until=until, reason="admission_backpressure", **self.block_context[key])
             self.push(until, "UNBLOCK", dst, src, until)
         return candidate
+
+    @staticmethod
+    def _available_slot(times, candidate, limit, window):
+        """Insert without violating past OR already-reserved future windows.
+
+        Only windows ending at the inserted timestamp or at an existing
+        reservation less than one window ahead can change their occupancy.
+        Move beyond each conflicting window's first expiration, then recheck.
+        """
+        while True:
+            endpoints = [candidate] + [t for t in times if candidate < t < candidate + window]
+            shifts = []
+            for end in endpoints:
+                active = [t for t in times if end - window < t <= end]
+                if len(active) >= limit:
+                    shifts.append(min(active) + window)
+            if not shifts:
+                return candidate
+            candidate = max(shifts)
 
     def _transmit(self, src, dst, msg):
         """
