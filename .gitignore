@@ -1,7 +1,8 @@
-# Publish only submission materials and documentation.
+# Publish submission materials, documentation, and the repository README.
 /*
 !/.gitignore
 !/.gitattributes
+!/README.md
 !/Document/
 !/Lab01_23127005_23127028_23127183_23127536_23127042/
 
