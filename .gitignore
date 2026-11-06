@@ -1,40 +1,30 @@
-# Byte-compiled / optimized / DLL files
+# Publish only submission materials and documentation.
+/*
+!/.gitignore
+!/.gitattributes
+!/Document/
+!/Lab01_23127005_23127028_23127183_23127536_23127042/
+
+# Python caches and local tooling, including inside the allowed directories.
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
-*.so
-
-# Logs
-logs/
-logs/*.log
-
-# Archives
-*.zip
-
 .venv/
 .pytest_cache/
-.codegraph
-.agents/
-
-# Local editor / AI integrations (project-wide instructions stay in AGENTS.md)
-/.claude/
-/.codex/
-/.cursor/
-/.gemini/
-/.vscode/
-/.mcp.json
-/GEMINI.md
-
-# Disposable review probes and generated artifacts
-/.review-tmp/
-/output/
-*.log
-
-# Additional Python tooling caches
 .mypy_cache/
 .ruff_cache/
 .coverage
 .coverage.*
 htmlcov/
+
+# Local archives and LaTeX build intermediates; keep PDF and test evidence.
+*.zip
+/Document/**/*.aux
+/Document/**/*.log
+/Document/**/*.out
+/Document/**/*.toc
+/Document/**/*.lof
+/Document/**/*.lot
+/Document/**/*.fls
+/Document/**/*.fdb_latexmk
+/Document/**/*.synctex.gz

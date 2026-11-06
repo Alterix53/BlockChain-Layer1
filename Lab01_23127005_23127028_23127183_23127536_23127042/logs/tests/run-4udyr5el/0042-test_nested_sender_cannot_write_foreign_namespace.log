@@ -1,0 +1,2 @@
+# test=tests.regression.test_cli.BoundaryAndCLIContracts.test_nested_sender_cannot_write_foreign_namespace
+# outcome=passed

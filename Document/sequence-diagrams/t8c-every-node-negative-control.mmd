@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+participant T as TestT8Determinism
+    participant R as main.run_sim
+    participant V9 as V9 của second
+    participant V as _assert_complete_deterministic_runs
+    T->>R: first=run_sim(cfg)
+    R-->>T: first hoàn tất
+    T->>R: second=run_sim(cfg)
+    R-->>T: second hoàn tất
+    T->>V: Kiểm baseline first và second
+    V-->>T: Thành công
+    loop Mỗi corruption độc lập
+        alt Sửa done
+            T->>V9: mock.patch done=False
+        else Sửa ledger
+            T->>V9: mock.patch ledger=[]
+        else Sửa data
+            T->>V9: mock.patch state.data thành giá trị wrong
+        else Sửa nonces
+            T->>V9: mock.patch state.nonces Alice=99
+        else Sửa hàm hash
+            T->>V9: mock.patch state.hash trả 32 byte x
+        end
+        T->>T: Bắt đầu assertRaises(AssertionError)
+        T->>V: Kiểm lại first và second
+        V->>V: Logs vẫn khớp nhưng kiểm từng honest phát hiện sai ở V9
+        V-->>T: AssertionError
+        T->>V9: Thoát mock.patch, khôi phục dữ liệu hoặc phương thức
+    end
+    T->>T: PASS khi cả năm corruption đều bị phát hiện

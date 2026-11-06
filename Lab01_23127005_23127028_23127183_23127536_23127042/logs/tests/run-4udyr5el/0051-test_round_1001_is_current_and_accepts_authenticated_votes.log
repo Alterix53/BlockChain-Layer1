@@ -1,0 +1,21 @@
+# test=tests.regression.test_consensus.ConsensusContracts.test_round_1001_is_current_and_accepts_authenticated_votes
+network=1 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=2
+network=1 t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=108a1055
+network=1 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V9 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V0 ev=ROUND_START height=1 round=1000
+network=1 t=0 node=V0 ev=TIMEOUT kind=ROUND height=1 round=1000
+network=1 t=0 node=V0 ev=SYNC_REQUEST height=1 to=4
+network=1 t=0 node=V0 ev=ROUND_START height=1 round=1001
+network=1 t=0 node=V0 ev=VOTE kind=PREVOTE height=1 round=1001 block=52c14b2f
+network=1 t=0 node=V0 ev=LOCK height=1 round=1001 block=52c14b2f
+network=1 t=0 node=V0 ev=VOTE kind=PRECOMMIT height=1 round=1001 block=52c14b2f
+# outcome=passed

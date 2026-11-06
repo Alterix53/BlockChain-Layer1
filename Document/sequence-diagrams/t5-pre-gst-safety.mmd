@@ -1,0 +1,53 @@
+sequenceDiagram
+    autonumber
+participant T as TestT5GstSafety
+    participant R as main.run_sim
+    participant N as Net
+    participant S as Node gửi
+    participant H as Node nhận
+    participant A as Assertion và oracle
+    alt Ca thường
+        T->>T: Lặp subTest seed 42,43,44,99
+        T->>T: load_cfg GST=1500, drop=0.15, heights=5
+    else Ca cực đoan
+        T->>T: load_cfg seed=7, GST=2000, drop=0.40, heights=3
+    end
+    T->>R: run_sim(cfg)
+    R->>N: Khởi tạo node và run(t_end)
+    loop Xử lý sự kiện trước GST
+        S->>N: send hoặc broadcast(msg)
+        alt Trúng xác suất drop
+            N->>N: Log DROP reason=pre_gst, không giao frame
+        else Không drop
+            N->>N: Chọn trễ trước GST, có thể thêm reorder
+            N-->>H: Giao msg theo lịch sự kiện
+            H->>H: Xác thực, lọc trùng, lưu phiếu hoặc proposal
+        end
+        opt Timeout của height/round hiện tại
+            N-->>H: on_timeout(key)
+            H->>H: NIL vote hoặc chuyển round theo kind
+            opt Timeout ROUND
+                H->>N: request_sync()
+            end
+        end
+        opt Đủ quorum cho block đã kiểm
+            H->>H: finalize(B, certificate)
+        end
+    end
+    opt Mô phỏng còn chạy khi now đạt GST
+        S->>N: Truyền thông điệp sau GST
+        N->>N: Áp dụng transport sau GST và cận delta toàn tuyến
+        N-->>H: Giao tin, xử lý đồng thuận hoặc đồng bộ
+        Note over N,H: Admission cục bộ có thể chờ trước SEND đầu tiên
+    end
+    N-->>R: Kết thúc theo điều kiện runner
+    R-->>T: net
+    opt Ca thường
+        T->>A: Có DROP reason=pre_gst
+    end
+    T->>A: assert_honest_safety và assert_honest_certificates
+    A->>A: Oracle phát lại độc lập các block đã chốt
+    opt Ca thường
+        T->>A: Mỗi height đã xuất hiện có tối đa một committed hash
+    end
+    Note over T,A: Không có assertion done hoặc progress đủ heights trong hai test này

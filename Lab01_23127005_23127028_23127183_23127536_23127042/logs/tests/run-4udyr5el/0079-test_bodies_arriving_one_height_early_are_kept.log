@@ -1,0 +1,7 @@
+# test=tests.unit.test_byzantine.TestEquivocateProposer.test_bodies_arriving_one_height_early_are_kept
+network=1 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V1 ev=BYZ_EQUIVOCATE_PROPOSAL height=1 round=0 a=52c14b2f b=f47e1f59
+network=1 t=0 node=V3 ev=EQUIVOCATION proposer=V1 height=1 round=0
+network=1 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V3 ev=VOTE kind=PREVOTE height=1 round=0 block=52c14b2f
+# outcome=passed

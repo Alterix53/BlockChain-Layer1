@@ -133,7 +133,7 @@ Dưới đây là bảng tổng hợp và phân tích chuyên sâu 8 bài test t
 | **T7** | **Up to $f$ Byzantine equivocate** | Có tối đa $f$ ($f = 3$) validator gian lận hai mặt (gửi 2 phiếu khác nhau cho 2 nhóm) | Nhờ định lý giao điểm Quorum ($|Q_1 \cap Q_2| \ge f + 1$), luôn có ít nhất 1 node trung thực ở giao điểm ngăn chặn việc chốt 2 block. Node phát hiện và ghi log `ev=EQUIVOCATION`. |
 | **T8** | **Same seed rerun twice** | Chạy mô phỏng lại 2 lần liên tiếp với cùng một file cấu hình | So sánh chuỗi log và hash trạng thái: Khớp $100\%$ từng ký tự (`Byte-identical logs and final state hash`). |
 
-T2 và T5 có kiểm thử end-to-end trong `Workspace/tests/test_sim.py`:
+T2 và T5 có kiểm thử end-to-end trong `Workspace/tests/e2e/test_consensus_network.py`:
 - **T2** chạy mạng với duplicate và reorder, xác nhận mọi validator finalize cùng số block và không có hai hash khác nhau ở cùng height; đồng thời gửi lại một vote hợp lệ và một vote equivocation để xác nhận mỗi validator chỉ được đếm một lần.
 - **T5** chạy nhiều seed với drop, delay và reorder trước GST; kiểm thử gom tất cả block đã finalize ở từng height và xác nhận không có hai hash khác nhau. T5 kiểm tra safety, không yêu cầu mọi node phải finalize đủ block trước khi mô phỏng dừng.
 

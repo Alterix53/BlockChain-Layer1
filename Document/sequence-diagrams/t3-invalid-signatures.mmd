@@ -1,0 +1,47 @@
+sequenceDiagram
+    autonumber
+participant T as TestT3EndToEnd
+    participant R as main.run_sim
+    participant N as InjectNet
+    participant K as Khóa của V3
+    participant H as Mỗi node nhận
+    participant C as common.verify
+    participant A as Assertion và oracle
+    T->>T: mock.patch(src.main.Net, InjectNet)
+    T->>R: run_sim(load_cfg())
+    R->>N: Khởi tạo và gọi run(t_end)
+    N->>K: Ký vote, header và một PRECOMMIT bằng khóa V3
+    K-->>N: Chữ ký làm đầu vào để tạo ca lỗi
+    N->>N: Tạo 3 VOTE lỗi và 1 PROPOSAL sai domain
+    N->>N: Tạo cert chép chữ ký V3 sang Q tên khác nhau
+    N->>N: Tạo TX Alice có chữ ký hỏng
+    loop Mỗi thông điệp lỗi và mỗi node đích
+        N->>N: push(t=1, MSG, src=3, dst, msg)
+    end
+    N->>N: super().run(t_end), START tại t=0
+    loop Mỗi node, xử lý các MSG ở t=1
+        N-->>H: 3 VOTE lỗi
+        H->>C: verify với VOTE:chain_id
+        C-->>H: False cho chữ ký hỏng, sai loại domain, sai chain
+        H->>N: REJECT bad_vote_sig, height=1 (3 lần)
+        N-->>H: PROPOSAL ký dưới VOTE:chain_id
+        H->>C: verify với HEADER:chain_id
+        C-->>H: False
+        H->>N: REJECT bad_header_sig, height=1
+        N-->>H: SYNC_RESP có block và cert giả
+        H->>H: on_sync_response(), kiểm header và certificate_error()
+        H->>C: Kiểm chữ ký theo từng voter trong cert
+        C-->>H: Chữ ký sao chép không hợp lệ với khóa người khác
+        H->>N: REJECT_SYNC invalid_cert_sig, height=1
+        N-->>H: TX giả danh Alice
+        H->>C: verify với khóa Alice và TX:chain_id
+        C-->>H: False
+        H->>N: REJECT bad_tx_sig, sender=Alice
+    end
+    Note over N,H: Các sự kiện đồng thuận hợp lệ vẫn tiếp tục được xử lý
+    H->>H: Chốt các khối hợp lệ theo quorum
+    N-->>R: Kết thúc mô phỏng
+    R-->>T: net, mock.patch được khôi phục
+    T->>A: Mỗi node tại t=1 có đúng các mã lỗi mong đợi
+    T->>A: fake_block không vào ledger, fake_tx không vào mempool hoặc block
+    T->>A: Safety, progress(5), certificates với tập loại trừ V3

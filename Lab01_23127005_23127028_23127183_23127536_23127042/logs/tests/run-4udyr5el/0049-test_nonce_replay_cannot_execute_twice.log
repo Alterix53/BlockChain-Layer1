@@ -1,0 +1,2 @@
+# test=tests.regression.test_consensus.ConsensusContracts.test_nonce_replay_cannot_execute_twice
+# outcome=passed

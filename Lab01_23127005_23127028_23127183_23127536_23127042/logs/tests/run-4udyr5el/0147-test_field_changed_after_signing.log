@@ -1,0 +1,79 @@
+# test=tests.unit.test_t3_signatures.TestT3Vote.test_field_changed_after_signing
+network=1 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=2
+network=1 t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=108a1055
+network=1 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V9 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=2
+network=2 t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=108a1055
+network=2 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V9 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V0 ev=REJECT reason=bad_vote_sig height=2
+network=3 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=2
+network=3 t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=108a1055
+network=3 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V9 ev=ROUND_START height=1 round=0
+network=3 t=0 node=V0 ev=REJECT reason=bad_vote_sig height=1
+network=4 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=2
+network=4 t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=108a1055
+network=4 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V9 ev=ROUND_START height=1 round=0
+network=4 t=0 node=V0 ev=REJECT reason=bad_vote_sig height=1
+network=5 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=2
+network=5 t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=108a1055
+network=5 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V9 ev=ROUND_START height=1 round=0
+network=5 t=0 node=V0 ev=REJECT reason=bad_vote_sig height=1
+network=6 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=2
+network=6 t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=108a1055
+network=6 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V9 ev=ROUND_START height=1 round=0
+network=6 t=0 node=V0 ev=REJECT reason=bad_vote_sig height=1
+# outcome=passed

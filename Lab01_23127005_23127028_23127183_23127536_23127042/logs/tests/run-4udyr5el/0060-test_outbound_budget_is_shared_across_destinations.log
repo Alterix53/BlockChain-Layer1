@@ -1,0 +1,7 @@
+# test=tests.regression.test_network.NetworkContracts.test_outbound_budget_is_shared_across_destinations
+network=1 t=0 node=V0 ev=SEND dst=V1 type=TEST height=0
+network=1 t=0 node=V0 ev=DELAY dst=V2 type=TEST height=0 reason=rate_limit until=10
+network=1 t=0 node=V1 ev=RECEIVE src=V0 type=TEST height=0
+network=1 t=10 node=V0 ev=SEND dst=V2 type=TEST height=0
+network=1 t=10 node=V2 ev=RECEIVE src=V0 type=TEST height=0
+# outcome=passed

@@ -1,0 +1,2 @@
+# test=tests.unit.test_executor.TestExecutor.test_invalid_signature_rejection
+# outcome=passed

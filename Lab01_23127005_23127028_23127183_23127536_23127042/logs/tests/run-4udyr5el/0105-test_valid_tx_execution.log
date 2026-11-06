@@ -1,0 +1,2 @@
+# test=tests.unit.test_executor.TestExecutor.test_valid_tx_execution
+# outcome=passed

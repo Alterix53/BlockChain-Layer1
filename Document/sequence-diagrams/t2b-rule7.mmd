@@ -1,0 +1,28 @@
+sequenceDiagram
+    autonumber
+participant T as TestT2DuplicateReorder
+    participant F as c_helpers.make_nodes
+    participant V as V1 và khóa ký
+    participant H as V0 receiver
+    participant N as RecordingNet
+    T->>F: make_nodes()
+    F-->>T: nodes, net đã start và clear log khởi tạo
+    T->>V: Tạo và ký vote_a cho hash A
+    V-->>T: PREVOTE(1,0,A,V1)
+    T->>V: Tạo và ký vote_b cho hash B
+    V-->>T: PREVOTE(1,0,B,V1)
+    T->>H: on_vote(vote_a)
+    H->>H: Kiểm định dạng, cửa sổ và chữ ký
+    H->>H: votes[(1,0,PREVOTE)][V1] = vote_a
+    loop Hai lần gửi lại vote_a
+        T->>H: on_vote(vote_a)
+        H->>H: Slot đã có V1, hash giống → return
+    end
+    T->>T: Assert V1 chỉ có đúng một phiếu, hash vẫn A
+    T->>H: on_vote(vote_b)
+    H->>H: Slot đã có V1, hash B khác A
+    H->>N: log(EQUIVOCATION, voter=V1, height=1, round=0)
+    H->>H: return, không thay vote_a
+    T->>T: Assert phiếu đầu vẫn A
+    T->>N: events(EQUIVOCATION, voter=V1)
+    N-->>T: Có ít nhất một sự kiện

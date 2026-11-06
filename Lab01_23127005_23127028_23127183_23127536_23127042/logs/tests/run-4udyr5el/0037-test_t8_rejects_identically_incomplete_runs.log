@@ -1,0 +1,126 @@
+# test=tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_rejects_identically_incomplete_runs
+network=1 t=0 node=V0 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V1 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V2 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V3 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V4 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V5 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V6 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V7 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V8 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V9 ev=TX_RECEIVED sender=Alice nonce=1
+network=1 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=1
+network=1 t=0 node=V1 ev=SEND dst=V0 type=HEADER height=1
+network=1 t=0 node=V1 ev=DUPLICATE dst=V0 type=HEADER height=1 copies=2
+network=1 t=0 node=V1 ev=DELAY dst=V0 type=HEADER height=1 delay=35 reason=network
+network=1 t=0 node=V1 ev=DELAY dst=V0 type=HEADER height=1 delay=17 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V2 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V2 type=HEADER height=1 delay=11 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V3 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V3 type=HEADER height=1 delay=29 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V4 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V4 type=HEADER height=1 delay=83 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V5 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V5 type=HEADER height=1 delay=35 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V6 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V6 type=HEADER height=1 delay=89 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V7 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V7 type=HEADER height=1 delay=97 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V8 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V8 type=HEADER height=1 delay=44 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V9 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V9 type=HEADER height=1 delay=68 reason=network
+network=1 t=0 node=V1 ev=LOCAL_DELIVERY type=HEADER height=1
+network=1 t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=2b5e7ed2
+network=1 t=0 node=V1 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=0 node=V1 ev=DELAY dst=V0 type=VOTE height=1 delay=37 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=0 node=V1 ev=DELAY dst=V2 type=VOTE height=1 delay=73 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=0 node=V1 ev=DELAY dst=V3 type=VOTE height=1 delay=98 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=0 node=V1 ev=DELAY dst=V4 type=VOTE height=1 delay=12 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=0 node=V1 ev=DELAY dst=V5 type=VOTE height=1 delay=20 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=0 node=V1 ev=DELAY dst=V6 type=VOTE height=1 delay=87 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=0 node=V1 ev=DELAY dst=V7 type=VOTE height=1 delay=93 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=0 node=V1 ev=DELAY dst=V8 type=VOTE height=1 delay=81 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V9 type=VOTE height=1
+network=1 t=0 node=V1 ev=DELAY dst=V9 type=VOTE height=1 delay=98 reason=network
+network=1 t=0 node=V1 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V9 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V0 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V1 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V2 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V3 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V4 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V5 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V6 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V7 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V8 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V9 ev=TX_RECEIVED sender=Alice nonce=1
+network=2 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V1 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=1
+network=2 t=0 node=V1 ev=SEND dst=V0 type=HEADER height=1
+network=2 t=0 node=V1 ev=DUPLICATE dst=V0 type=HEADER height=1 copies=2
+network=2 t=0 node=V1 ev=DELAY dst=V0 type=HEADER height=1 delay=35 reason=network
+network=2 t=0 node=V1 ev=DELAY dst=V0 type=HEADER height=1 delay=17 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V2 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V2 type=HEADER height=1 delay=11 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V3 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V3 type=HEADER height=1 delay=29 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V4 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V4 type=HEADER height=1 delay=83 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V5 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V5 type=HEADER height=1 delay=35 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V6 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V6 type=HEADER height=1 delay=89 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V7 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V7 type=HEADER height=1 delay=97 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V8 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V8 type=HEADER height=1 delay=44 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V9 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V9 type=HEADER height=1 delay=68 reason=network
+network=2 t=0 node=V1 ev=LOCAL_DELIVERY type=HEADER height=1
+network=2 t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=2b5e7ed2
+network=2 t=0 node=V1 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=0 node=V1 ev=DELAY dst=V0 type=VOTE height=1 delay=37 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=0 node=V1 ev=DELAY dst=V2 type=VOTE height=1 delay=73 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=0 node=V1 ev=DELAY dst=V3 type=VOTE height=1 delay=98 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=0 node=V1 ev=DELAY dst=V4 type=VOTE height=1 delay=12 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=0 node=V1 ev=DELAY dst=V5 type=VOTE height=1 delay=20 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=0 node=V1 ev=DELAY dst=V6 type=VOTE height=1 delay=87 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=0 node=V1 ev=DELAY dst=V7 type=VOTE height=1 delay=93 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=0 node=V1 ev=DELAY dst=V8 type=VOTE height=1 delay=81 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V9 type=VOTE height=1
+network=2 t=0 node=V1 ev=DELAY dst=V9 type=VOTE height=1 delay=98 reason=network
+network=2 t=0 node=V1 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V9 ev=ROUND_START height=1 round=0
+# outcome=passed

@@ -1,0 +1,12 @@
+# test=tests.unit.test_byzantine.TestSilent.test_all_mode_sends_nothing_at_all
+network=1 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V1 ev=BYZ_SILENT mode=all
+network=1 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V7 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V8 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V9 ev=ROUND_START height=1 round=0
+# outcome=passed

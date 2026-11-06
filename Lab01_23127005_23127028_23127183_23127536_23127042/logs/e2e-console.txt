@@ -1,0 +1,54 @@
+test_network_equivocating_proposer (tests.e2e.test_byzantine_scenarios.TestEquivocateProposer.test_network_equivocating_proposer)
+Mạng thật: không fork, có honest phát hiện, KHÔNG node honest nào kẹt. Trước khi sửa ... ok
+test_network_f_equivocating_voters (tests.e2e.test_byzantine_scenarios.TestEquivocateVoter.test_network_f_equivocating_voters) ... ok
+test_network_every_honest_rejects_and_chain_continues (tests.e2e.test_byzantine_scenarios.TestInvalidBlock.test_network_every_honest_rejects_and_chain_continues) ... ok
+test_network_fake_pol_round (tests.e2e.test_byzantine_scenarios.TestInvalidBlock.test_network_fake_pol_round) ... ok
+test_network_replay_same_height_and_old_height (tests.e2e.test_byzantine_scenarios.TestReplay.test_network_replay_same_height_and_old_height) ... ok
+test_network_silent_proposer_round_timeout_chain_continues (tests.e2e.test_byzantine_scenarios.TestSilent.test_network_silent_proposer_round_timeout_chain_continues) ... ok
+test_network_three_silent (tests.e2e.test_byzantine_scenarios.TestSilent.test_network_three_silent) ... ok
+test_t2_duplicate_reordered_votes_count_once_and_keep_safety (tests.e2e.test_consensus_network.ConsensusNetworkTests.test_t2_duplicate_reordered_votes_count_once_and_keep_safety) ... ok
+test_t5_pre_gst_drops_and_delays_preserve_finalization_safety (tests.e2e.test_consensus_network.ConsensusNetworkTests.test_t5_pre_gst_drops_and_delays_preserve_finalization_safety) ... ok
+test_experiment_is_deterministic (tests.e2e.test_quorum_boundary.TestQuorumBoundary.test_experiment_is_deterministic) ... ok
+test_n10_q7_random_pre_gst_is_safe (tests.e2e.test_quorum_boundary.TestQuorumBoundary.test_n10_q7_random_pre_gst_is_safe) ... ok
+test_n10_q7_same_attack_is_safe (tests.e2e.test_quorum_boundary.TestQuorumBoundary.test_n10_q7_same_attack_is_safe) ... ok
+test_n9_q6_breaks_safety (tests.e2e.test_quorum_boundary.TestQuorumBoundary.test_n9_q6_breaks_safety) ... ok
+test_n9_q6_fork_needs_timely_delivery (tests.e2e.test_quorum_boundary.TestQuorumBoundary.test_n9_q6_fork_needs_timely_delivery) ... ok
+test_n9_q7_safe_but_no_liveness (tests.e2e.test_quorum_boundary.TestQuorumBoundary.test_n9_q7_safe_but_no_liveness) ... ok
+test_isolated_node_catches_up (tests.e2e.test_sync_catchup.TestSyncCatchUpNetwork.test_isolated_node_catches_up) ... ok
+test_normal_run_never_asks (tests.e2e.test_sync_catchup.TestSyncCatchUpNetwork.test_normal_run_never_asks) ... ok
+test_t1_normal_execution (tests.e2e.test_t1_normal.TestT1Normal.test_t1_normal_execution) ... ok
+test_t2_byzantine_replay_attack_node (tests.e2e.test_t2_duplicate_reorder.TestT2DuplicateReorder.test_t2_byzantine_replay_attack_node) ... ok
+test_t2_network_duplicate_and_reorder_safety (tests.e2e.test_t2_duplicate_reorder.TestT2DuplicateReorder.test_t2_network_duplicate_and_reorder_safety) ... ok
+test_t2_rule7_anti_double_voting_and_equivocation (tests.e2e.test_t2_duplicate_reorder.TestT2DuplicateReorder.test_t2_rule7_anti_double_voting_and_equivocation) ... ok
+test_rejected_and_logged_and_chain_continues (tests.e2e.test_t3_invalid_signatures.TestT3EndToEnd.test_rejected_and_logged_and_chain_continues) ... ok
+test_t4_transaction_replay_prevention (tests.e2e.test_t4_replay_tx.TestT4ReplayTx.test_t4_transaction_replay_prevention) ... ok
+test_t5_extreme_pre_gst_partition_safety (tests.e2e.test_t5_gst_safety.TestT5GstSafety.test_t5_extreme_pre_gst_partition_safety) ... ok
+test_t5_pre_gst_drops_and_delays_preserve_safety (tests.e2e.test_t5_gst_safety.TestT5GstSafety.test_t5_pre_gst_drops_and_delays_preserve_safety) ... ok
+test_t6_single_silent_proposer_round_advancement (tests.e2e.test_t6_silent_proposer.TestT6SilentProposer.test_t6_single_silent_proposer_round_advancement) ... ok
+test_t6_three_silent_validators_liveness_preserved (tests.e2e.test_t6_silent_proposer.TestT6SilentProposer.test_t6_three_silent_validators_liveness_preserved) ... ok
+test_t7_coalition_proposer_and_voters (tests.e2e.test_t7_equivocation.TestT7Equivocation.test_t7_coalition_proposer_and_voters)
+Liên minh Byzantine phối hợp: 1 Proposer đề xuất 2 mặt (V1) kết hợp với 2 Voter bỏ phiếu 2 mặt (V4, V7). ... ok
+test_t7_equivocating_proposer_broadcast (tests.e2e.test_t7_equivocation.TestT7Equivocation.test_t7_equivocating_proposer_broadcast)
+Proposer Byzantine (V1 tại height 1 round 0) phát tán 2 block hợp lệ nhưng khác hash ... ok
+test_t7_equivocating_proposer_partitioned (tests.e2e.test_t7_equivocation.TestT7Equivocation.test_t7_equivocating_proposer_partitioned)
+Proposer Byzantine cố tình chia rẽ mạng bằng cách gửi Block A cho nhóm 1 và Block B cho nhóm 2. ... ok
+test_t7_up_to_f_equivocating_voters (tests.e2e.test_t7_equivocation.TestT7Equivocation.test_t7_up_to_f_equivocating_voters)
+Tối đa f = 3 validator Byzantine (V3, V5, V7) gian lận hai mặt (EquivocateVoter), ... ok
+test_t8_byzantine_adversary_determinism (tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_byzantine_adversary_determinism)
+Kiểm tra tính tất định khi có validator Byzantine hoạt động trong mạng. ... ok
+test_t8_chaotic_pre_gst_network_determinism (tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_chaotic_pre_gst_network_determinism)
+Kiểm tra tính tất định trong điều kiện mạng hỗn loạn trước GST (rớt gói, trễ lớn, đảo thứ tự). ... ok
+test_t8_checks_every_honest_node_not_just_node_zero (tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_checks_every_honest_node_not_just_node_zero) ... ok
+test_t8_default_config_rerun_twice (tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_default_config_rerun_twice)
+Chạy 2 lần liên tiếp với cấu hình mặc định (seed 42). ... ok
+test_t8_multiple_arbitrary_seeds (tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_multiple_arbitrary_seeds)
+Kiểm tra tính tất định trên nhiều hạt giống khác nhau (seed 1, 99, 1337). ... ok
+test_t8_rejects_identically_incomplete_runs (tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_rejects_identically_incomplete_runs) ... ok
+
+----------------------------------------------------------------------
+Ran 37 tests in 20.718s
+
+OK
+Test event logs: E:\DISK_D\MDUY\Nam4\4.1 Blockchain\Lab1\Lab01_23127005_23127028_23127183_23127536_23127042\logs\e2e\run-_0c6h6zv
+Result index: E:\DISK_D\MDUY\Nam4\4.1 Blockchain\Lab1\Lab01_23127005_23127028_23127183_23127536_23127042\logs\e2e\run-_0c6h6zv\summary.json
+Exit code: 0

@@ -1,0 +1,10 @@
+% \section{Kết luận}
+% \label{sec:conclusion}
+
+% Bài lab đặt mục tiêu xây dựng simulator cho đồng thuận Byzantine hai pha, trong đó có mô hình mạng bán đồng bộ, chữ ký và hash có domain separation, kiểm tra transaction/state, luật quorum và hành vi Byzantine. Các mục trước đã mô tả kiến trúc, dữ liệu, guard, quy trình đồng thuận và kế hoạch kiểm thử để đối chiếu từng yêu cầu của đề.
+
+% Bản báo cáo hiện chưa có mã nguồn, README hoặc log chạy trong workspace, vì vậy chưa thể kết luận các yêu cầu đã được hiện thực và kiểm chứng thành công. Trước khi nộp, nhóm cần cập nhật bảng T1--T8 bằng kết quả thật, xác nhận bảy luật theo mục 6.1 của đề, thay các ca bug minh họa bằng lỗi đã tái hiện (hoặc bỏ những ca không xảy ra), và ghi chính xác phiên bản Python/thư viện.
+
+% \subsection{Hạn chế và hướng mở rộng}
+
+% Các hướng mở rộng phù hợp gồm lưu bền ledger/lock/vote để restart an toàn; dùng Merkle tree nếu cần inclusion proof hoặc light client; tối ưu gossip và đo tải khi số validator tăng; và mở rộng mô hình membership, quản lý khóa, cũng như fault injection. Mỗi hướng cần được đánh giá cùng giả định an toàn và chi phí bổ sung, thay vì chỉ xem là cải tiến hiệu năng.

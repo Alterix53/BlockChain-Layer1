@@ -9,16 +9,16 @@ Ngày 27/10/2026. Dựa trên `main` sau khi đã merge B (commit `4b44ed4`) và
 | File | Nội dung |
 |---|---|
 | `Workspace/src/byzantine.py` | 5 hành vi Byzantine, mỗi hành vi là lớp con của `Node`: `Silent`, `EquivocateVoter`, `EquivocateProposer`, `InvalidBlock` (7 kiểu block sai), `Replay`. Thêm `ForkCoalition` cho thí nghiệm n=9, cùng `REGISTRY` và `make_node(...)` để E dùng làm factory. |
-| `Workspace/tests/test_byzantine.py` | T7. Mỗi hành vi có test riêng lẻ (unit) và test chạy trên mạng `sim.py` thật. Các test mạng đều kiểm safety, liveness và certificate trên node honest. |
-| `Workspace/tests/test_t3.py` | T3: chữ ký sai hoặc sai domain thì bị loại **và có ghi lý do**, trên cả 5 đường nhận: vote, header, tx trong block, certificate khi đồng bộ (D), tx gossip (D). Có thêm 1 test chạy đầu-cuối. |
-| `Workspace/tests/test_quorum_boundary.py` | Thí nghiệm ngoài giả định: n=9, Q=6 thì fork; đối chứng n=10, Q=7 thì không fork; n=9, Q=7 thì không fork nhưng mất liveness. |
+| `Workspace/tests/unit/test_byzantine.py` + `Workspace/tests/e2e/test_byzantine_scenarios.py` | T7. Mỗi hành vi có test riêng lẻ (unit) và test chạy trên mạng `sim.py` thật. Các test mạng đều kiểm safety, liveness và certificate trên node honest. |
+| `Workspace/tests/unit/test_t3_signatures.py` + `Workspace/tests/e2e/test_t3_invalid_signatures.py` | T3: chữ ký sai hoặc sai domain thì bị loại **và có ghi lý do**, trên cả 5 đường nhận: vote, header, tx trong block, certificate khi đồng bộ (D), tx gossip (D). Có thêm 1 test chạy đầu-cuối. |
+| `Workspace/tests/e2e/test_quorum_boundary.py` | Thí nghiệm ngoài giả định: n=9, Q=6 thì fork; đối chứng n=10, Q=7 thì không fork; n=9, Q=7 thì không fork nhưng mất liveness. |
 | `Workspace/tests/c_helpers.py` | Hàm dùng chung: mạng giả, dựng node, ký vote/header/certificate, kiểm safety, liveness và certificate. |
 
 Chạy (từ thư mục `Workspace`):
 
 ```bash
-python -m unittest discover -s tests -v            # 80 test (gồm cả test của D), kết quả: OK
-python tests/test_quorum_boundary.py --report      # in kết quả thí nghiệm n=9 / n=10
+python -m unittest discover -s tests -v            # toàn bộ suite; mốc bàn giao ban đầu: 80 test, OK
+python -m tests.e2e.test_quorum_boundary --report      # in kết quả thí nghiệm n=9 / n=10
 python -m src.main --twice                         # vẫn tất định, state hash 0b837be9...
 ```
 
@@ -66,7 +66,7 @@ C đã viết sẵn những phần cần mạng, nhưng một số chỗ đang d
 1. **`Net.send(src, dst, msg)`**: gửi cho đúng một node, đi qua cùng pipeline với `broadcast` (độ trễ, log `SEND`, sau này thêm drop/dup/reorder).
    - `ByzantineBase.send_to` gọi đúng hàm này. Khi Net chưa có, tấn công kiểu "gửi riêng hai nhóm" (`groups=...`) báo `RuntimeError("... chờ phần A")`.
 2. **GST / chia cắt mạng (partition)**: trước GST, adversary được giữ tin giữa hai nhóm; sau GST, mọi tin tới trong `delta`.
-   - `tests/test_quorum_boundary.py::PartitionNet` là bản **tạm** làm đúng việc này. Khi A merge, thay bằng Net của A và xóa `PartitionNet`.
+   - `tests/e2e/test_quorum_boundary.py::PartitionNet` là bản **tạm** làm đúng việc này. Khi A merge, thay bằng Net của A và xóa `PartitionNet`.
 3. **Mọi loại tin phải đi qua Net**: `Node.send_to` (dùng cho `SYNC_RESP`) đã tự gọi `net.send` khi Net có hàm này. Khi A xong `send`, chỉ cần xóa nhánh `net.push` dự phòng trong `Node.send_to` (đánh dấu `TODO(A)`).
 4. **Log `SEND` cho mọi loại tin** (`TX`, `SYNC_REQ`, `SYNC_RESP`), không chỉ `PROPOSAL`/`VOTE`. `sim.py` hiện dùng `getattr(msg[1], "height", 0)`, nên giữ cách này hoặc cho mỗi kiểu tin có `height`.
 5. Nếu A làm giao thức `HEADER -> REQUEST_BODY -> BODY`: phía C chỉ phải sửa `ByzantineBase.send_proposal` (đã đánh dấu `TODO(A)`).

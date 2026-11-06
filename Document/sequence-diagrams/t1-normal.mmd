@@ -1,0 +1,56 @@
+sequenceDiagram
+    autonumber
+participant T as TestT1Normal
+    participant R as main.run_sim
+    participant N as Net
+    participant P as Proposer Node
+    participant H as Các validator nhận
+    participant E as execution.apply_txs
+    participant A as Assertion và oracle
+    T->>T: load_cfg và ghi đè cấu hình không lỗi
+    T->>R: run_sim(cfg)
+    R->>R: validate_config, identity_keys, tạo ctx
+    R->>N: Net(cfg)
+    R->>P: Tạo Node(idx, ctx, kp)
+    R->>H: Tạo các Node còn lại
+    R->>P: on_tx(tx, gossip=False) cho giao dịch ban đầu
+    R->>H: on_tx(tx, gossip=False)
+    R->>N: run(t_end)
+    N->>P: START → start() → start_height(1)
+    N->>H: START → start() → start_height(1)
+    loop h = 1 đến 5, round = 0
+        Note over P,H: Proposer luân phiên theo (height + round) modulo n
+        P->>P: propose() → make_block() → seal()
+        P->>P: send_proposal(B), lưu body và on_proposal(B)
+        P->>N: broadcast(HEADER, B.header)
+        N-->>H: on_message(HEADER, src) → on_header()
+        H->>H: Kiểm trường, cửa sổ, chữ ký, proposer, parent
+        H->>N: send(REQUEST_BODY, B.hash)
+        N-->>P: on_request_body(hash, src)
+        P->>N: send(BODY, (hash, txs))
+        N-->>H: on_body() → on_proposal(B)
+        H->>E: check_block(B) → apply_txs(state, txs)
+        E-->>H: State thử hợp lệ, state_hash khớp
+        H->>H: run() → prevote_target(B) → cast(PREVOTE, hash)
+        H->>N: broadcast(VOTE PREVOTE)
+        P->>N: broadcast(VOTE PREVOTE)
+        N-->>H: on_vote() xác thực và lưu phiếu theo voter
+        H->>H: run() thấy Q PREVOTE → LOCK
+        H->>N: cast và broadcast PRECOMMIT cho cùng hash
+        N-->>P: Giao các phiếu hợp lệ
+        N-->>H: Giao các phiếu hợp lệ
+        H->>H: Q PRECOMMIT → tạo CommitCertificate
+        H->>E: finalize(B, cert) → apply_txs()
+        E-->>H: State mới, hash đúng
+        H->>H: Ghi ledger/certificate, dọn mempool, FINALIZE
+        H->>H: start_height(h + 1), done khi vượt 5
+        Note over P,H: Proposer cũng chạy cùng quy tắc nhận phiếu và finalize
+    end
+    N-->>R: Hết sự kiện, hết t_end hoặc mọi honest done
+    R-->>T: net
+    T->>A: Không Byzantine, DROP, DUPLICATE, reorder, TIMEOUT
+    T->>A: Mọi node done, ledger giống nhau và dài 5
+    T->>A: Safety, progress(5), certificates và oracle độc lập
+    T->>A: Round của block và certificate đều bằng 0
+    T->>A: Alice/Bob/Carol msg=v5, nonce=5, state hash thống nhất
+    T->>A: Hash hex bắt đầu bằng 0b837be96db72e1f

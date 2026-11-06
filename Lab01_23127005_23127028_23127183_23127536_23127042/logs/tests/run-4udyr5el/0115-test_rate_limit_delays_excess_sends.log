@@ -1,0 +1,7 @@
+# test=tests.unit.test_sim.NetTests.test_rate_limit_delays_excess_sends
+network=1 t=0 node=V0 ev=SEND dst=V1 type=FIRST height=0
+network=1 t=0 node=V0 ev=DELAY dst=V1 type=SECOND height=0 reason=rate_limit until=10
+network=1 t=0 node=V1 ev=RECEIVE src=V0 type=FIRST height=0
+network=1 t=10 node=V0 ev=SEND dst=V1 type=SECOND height=0
+network=1 t=10 node=V1 ev=RECEIVE src=V0 type=SECOND height=0
+# outcome=passed

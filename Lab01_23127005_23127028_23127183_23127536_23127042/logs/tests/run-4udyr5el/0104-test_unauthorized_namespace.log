@@ -1,0 +1,2 @@
+# test=tests.unit.test_executor.TestExecutor.test_unauthorized_namespace
+# outcome=passed

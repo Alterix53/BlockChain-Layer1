@@ -1,0 +1,872 @@
+# test=tests.e2e.test_quorum_boundary.TestQuorumBoundary.test_experiment_is_deterministic
+network=1 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V1 ev=BYZ_COALITION_START height=1 round=0
+network=1 t=0 node=V1 ev=BYZ_EQUIVOCATE_PROPOSAL height=1 round=0 a=52c14b2f b=802d2006
+network=1 t=0 node=V1 ev=SEND dst=V0 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V0 type=HEADER height=1 delay=20 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V2 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V2 type=HEADER height=1 delay=18 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V3 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V3 type=HEADER height=1 delay=13 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V4 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V4 type=HEADER height=1 delay=1 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V5 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V5 type=HEADER height=1 delay=20 reason=network
+network=1 t=0 node=V1 ev=SEND dst=V6 type=HEADER height=1
+network=1 t=0 node=V1 ev=DELAY dst=V6 type=HEADER height=1 delay=1 reason=network
+network=1 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=1 t=0 node=V7 ev=BYZ_COALITION_START height=1 round=0
+network=1 t=0 node=V8 ev=BYZ_COALITION_START height=1 round=0
+network=1 t=1 node=V4 ev=RECEIVE src=V1 type=HEADER height=1
+network=1 t=1 node=V4 ev=REQUEST_BODY height=1 block=802d2006 peer=V1
+network=1 t=1 node=V4 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=1 t=1 node=V4 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=9 reason=network
+network=1 t=1 node=V6 ev=RECEIVE src=V1 type=HEADER height=1
+network=1 t=1 node=V6 ev=REQUEST_BODY height=1 block=802d2006 peer=V1
+network=1 t=1 node=V6 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=1 t=1 node=V6 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=17 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V0 type=VOTE height=1 delay=20 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V2 type=VOTE height=1 delay=18 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V3 type=VOTE height=1 delay=13 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V4 type=VOTE height=1 delay=11 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V5 type=VOTE height=1 delay=7 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V6 type=VOTE height=1 delay=10 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V0 type=VOTE height=1 delay=3 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V2 type=VOTE height=1 delay=15 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V3 type=VOTE height=1 delay=17 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V4 type=VOTE height=1 delay=11 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V5 type=VOTE height=1 delay=2 reason=network
+network=1 t=1 node=V1 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=1 node=V1 ev=DELAY dst=V6 type=VOTE height=1 delay=1 reason=network
+network=1 t=1 node=V1 ev=BYZ_EQUIVOCATE_VOTE kind=PREVOTE+PRECOMMIT height=1 round=0 a=52c14b2f b=802d2006
+network=1 t=1 node=V7 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V0 type=VOTE height=1 delay=14 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=1 node=V7 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V3 type=VOTE height=1 delay=15 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V4 type=VOTE height=1 delay=7 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V5 type=VOTE height=1 delay=5 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V6 type=VOTE height=1 delay=13 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V0 type=VOTE height=1 delay=11 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V2 type=VOTE height=1 delay=2 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V3 type=VOTE height=1 delay=15 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V4 type=VOTE height=1 delay=4 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V5 type=VOTE height=1 delay=4 reason=network
+network=1 t=1 node=V7 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=1 node=V7 ev=DELAY dst=V6 type=VOTE height=1 delay=1 reason=network
+network=1 t=1 node=V7 ev=BYZ_EQUIVOCATE_VOTE kind=PREVOTE+PRECOMMIT height=1 round=0 a=52c14b2f b=802d2006
+network=1 t=1 node=V8 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V0 type=VOTE height=1 delay=17 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V2 type=VOTE height=1 delay=20 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V3 type=VOTE height=1 delay=14 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=1 node=V8 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V5 type=VOTE height=1 delay=19 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V6 type=VOTE height=1 delay=4 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V0 type=VOTE height=1 delay=15 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V2 type=VOTE height=1 delay=14 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V3 type=VOTE height=1 delay=10 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V4 type=VOTE height=1 delay=16 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V5 type=VOTE height=1 delay=4 reason=network
+network=1 t=1 node=V8 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=1 node=V8 ev=DELAY dst=V6 type=VOTE height=1 delay=9 reason=network
+network=1 t=1 node=V8 ev=BYZ_EQUIVOCATE_VOTE kind=PREVOTE+PRECOMMIT height=1 round=0 a=52c14b2f b=802d2006
+network=1 t=1 node=V2 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=1 node=V4 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=2 node=V6 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=2 node=V6 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=3 node=V5 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=3 node=V2 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=4 node=V0 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=5 node=V4 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=5 node=V5 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=5 node=V6 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=5 node=V5 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=6 node=V5 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=8 node=V5 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=8 node=V4 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=10 node=V1 ev=RECEIVE src=V4 type=REQUEST_BODY height=1
+network=1 t=10 node=V1 ev=SEND dst=V4 type=BODY height=1
+network=1 t=10 node=V1 ev=DELAY dst=V4 type=BODY height=1 delay=8 reason=network
+network=1 t=10 node=V6 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=11 node=V6 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=11 node=V3 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=12 node=V4 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=12 node=V4 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=12 node=V0 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=13 node=V3 ev=RECEIVE src=V1 type=HEADER height=1
+network=1 t=13 node=V3 ev=REQUEST_BODY height=1 block=52c14b2f peer=V1
+network=1 t=13 node=V3 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=1 t=13 node=V3 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=7 reason=network
+network=1 t=14 node=V3 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=14 node=V6 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=15 node=V0 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=15 node=V3 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=15 node=V2 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=16 node=V2 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=16 node=V3 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=16 node=V3 ev=RECEIVE src=V7 type=VOTE height=1
+network=1 t=16 node=V0 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=17 node=V4 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=18 node=V2 ev=RECEIVE src=V1 type=HEADER height=1
+network=1 t=18 node=V2 ev=REQUEST_BODY height=1 block=52c14b2f peer=V1
+network=1 t=18 node=V2 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=1 t=18 node=V2 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=7 reason=network
+network=1 t=18 node=V1 ev=RECEIVE src=V6 type=REQUEST_BODY height=1
+network=1 t=18 node=V1 ev=SEND dst=V6 type=BODY height=1
+network=1 t=18 node=V1 ev=DELAY dst=V6 type=BODY height=1 delay=6 reason=network
+network=1 t=18 node=V3 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=18 node=V0 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=18 node=V4 ev=RECEIVE src=V1 type=BODY height=1
+network=1 t=18 node=V4 ev=VOTE kind=PREVOTE height=1 round=0 block=802d2006
+network=1 t=18 node=V4 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=1 t=18 node=V4 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=18 node=V4 ev=DELAY dst=V1 type=VOTE height=1 delay=7 reason=network
+network=1 t=18 node=V4 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=1 t=18 node=V4 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=1 t=18 node=V4 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=18 node=V4 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=18 node=V4 ev=DELAY dst=V6 type=VOTE height=1 delay=19 reason=network
+network=1 t=18 node=V4 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=18 node=V4 ev=DELAY dst=V7 type=VOTE height=1 delay=11 reason=network
+network=1 t=18 node=V4 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=18 node=V4 ev=DELAY dst=V8 type=VOTE height=1 delay=7 reason=network
+network=1 t=18 node=V4 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=18 node=V5 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=19 node=V2 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=20 node=V0 ev=RECEIVE src=V1 type=HEADER height=1
+network=1 t=20 node=V0 ev=REQUEST_BODY height=1 block=52c14b2f peer=V1
+network=1 t=20 node=V0 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=1 t=20 node=V0 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=19 reason=network
+network=1 t=20 node=V5 ev=RECEIVE src=V1 type=HEADER height=1
+network=1 t=20 node=V5 ev=REQUEST_BODY height=1 block=802d2006 peer=V1
+network=1 t=20 node=V5 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=1 t=20 node=V5 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=20 reason=network
+network=1 t=20 node=V5 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=20 node=V1 ev=RECEIVE src=V3 type=REQUEST_BODY height=1
+network=1 t=20 node=V1 ev=SEND dst=V3 type=BODY height=1
+network=1 t=20 node=V1 ev=DELAY dst=V3 type=BODY height=1 delay=6 reason=network
+network=1 t=21 node=V0 ev=RECEIVE src=V1 type=VOTE height=1
+network=1 t=21 node=V2 ev=RECEIVE src=V8 type=VOTE height=1
+network=1 t=24 node=V6 ev=RECEIVE src=V1 type=BODY height=1
+network=1 t=24 node=V6 ev=VOTE kind=PREVOTE height=1 round=0 block=802d2006
+network=1 t=24 node=V6 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=1 t=24 node=V6 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=24 node=V6 ev=DELAY dst=V1 type=VOTE height=1 delay=10 reason=network
+network=1 t=24 node=V6 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=1 t=24 node=V6 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=1 t=24 node=V6 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=24 node=V6 ev=DELAY dst=V4 type=VOTE height=1 delay=14 reason=network
+network=1 t=24 node=V6 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=24 node=V6 ev=DELAY dst=V5 type=VOTE height=1 delay=5 reason=network
+network=1 t=24 node=V6 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=24 node=V6 ev=DELAY dst=V7 type=VOTE height=1 delay=14 reason=network
+network=1 t=24 node=V6 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=24 node=V6 ev=DELAY dst=V8 type=VOTE height=1 delay=15 reason=network
+network=1 t=24 node=V6 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=25 node=V1 ev=RECEIVE src=V2 type=REQUEST_BODY height=1
+network=1 t=25 node=V1 ev=SEND dst=V2 type=BODY height=1
+network=1 t=25 node=V1 ev=DELAY dst=V2 type=BODY height=1 delay=4 reason=network
+network=1 t=25 node=V1 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=25 node=V8 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=26 node=V3 ev=RECEIVE src=V1 type=BODY height=1
+network=1 t=26 node=V3 ev=VOTE kind=PREVOTE height=1 round=0 block=52c14b2f
+network=1 t=26 node=V3 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=26 node=V3 ev=DELAY dst=V0 type=VOTE height=1 delay=3 reason=network
+network=1 t=26 node=V3 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=26 node=V3 ev=DELAY dst=V1 type=VOTE height=1 delay=6 reason=network
+network=1 t=26 node=V3 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=26 node=V3 ev=DELAY dst=V2 type=VOTE height=1 delay=9 reason=network
+network=1 t=26 node=V3 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=1 t=26 node=V3 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=1 t=26 node=V3 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=1 t=26 node=V3 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=26 node=V3 ev=DELAY dst=V7 type=VOTE height=1 delay=17 reason=network
+network=1 t=26 node=V3 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=26 node=V3 ev=DELAY dst=V8 type=VOTE height=1 delay=11 reason=network
+network=1 t=26 node=V3 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=29 node=V7 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=29 node=V5 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=29 node=V2 ev=RECEIVE src=V1 type=BODY height=1
+network=1 t=29 node=V2 ev=VOTE kind=PREVOTE height=1 round=0 block=52c14b2f
+network=1 t=29 node=V2 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=29 node=V2 ev=DELAY dst=V0 type=VOTE height=1 delay=16 reason=network
+network=1 t=29 node=V2 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=29 node=V2 ev=DELAY dst=V1 type=VOTE height=1 delay=17 reason=network
+network=1 t=29 node=V2 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=29 node=V2 ev=DELAY dst=V3 type=VOTE height=1 delay=5 reason=network
+network=1 t=29 node=V2 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=1 t=29 node=V2 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=1 t=29 node=V2 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=1 t=29 node=V2 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=29 node=V2 ev=DELAY dst=V7 type=VOTE height=1 delay=4 reason=network
+network=1 t=29 node=V2 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=29 node=V2 ev=DELAY dst=V8 type=VOTE height=1 delay=10 reason=network
+network=1 t=29 node=V2 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=29 node=V0 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=32 node=V1 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=33 node=V7 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=34 node=V1 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=34 node=V3 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=35 node=V2 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=37 node=V6 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=37 node=V8 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=38 node=V4 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=38 node=V7 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=39 node=V1 ev=RECEIVE src=V0 type=REQUEST_BODY height=1
+network=1 t=39 node=V1 ev=SEND dst=V0 type=BODY height=1
+network=1 t=39 node=V1 ev=DELAY dst=V0 type=BODY height=1 delay=3 reason=network
+network=1 t=39 node=V8 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=39 node=V8 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=40 node=V1 ev=RECEIVE src=V5 type=REQUEST_BODY height=1
+network=1 t=40 node=V1 ev=SEND dst=V5 type=BODY height=1
+network=1 t=40 node=V1 ev=DELAY dst=V5 type=BODY height=1 delay=1 reason=network
+network=1 t=41 node=V5 ev=RECEIVE src=V1 type=BODY height=1
+network=1 t=41 node=V5 ev=VOTE kind=PREVOTE height=1 round=0 block=802d2006
+network=1 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=1 t=41 node=V5 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V1 type=VOTE height=1 delay=2 reason=network
+network=1 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=1 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=1 t=41 node=V5 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V4 type=VOTE height=1 delay=16 reason=network
+network=1 t=41 node=V5 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V6 type=VOTE height=1 delay=15 reason=network
+network=1 t=41 node=V5 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V7 type=VOTE height=1 delay=8 reason=network
+network=1 t=41 node=V5 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V8 type=VOTE height=1 delay=14 reason=network
+network=1 t=41 node=V5 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=41 node=V5 ev=LOCK height=1 round=0 block=802d2006
+network=1 t=41 node=V5 ev=VOTE kind=PRECOMMIT height=1 round=0 block=802d2006
+network=1 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=1 t=41 node=V5 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V1 type=VOTE height=1 delay=2 reason=network
+network=1 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=1 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=1 t=41 node=V5 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V4 type=VOTE height=1 delay=9 reason=network
+network=1 t=41 node=V5 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V6 type=VOTE height=1 delay=20 reason=network
+network=1 t=41 node=V5 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V7 type=VOTE height=1 delay=14 reason=network
+network=1 t=41 node=V5 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=41 node=V5 ev=DELAY dst=V8 type=VOTE height=1 delay=15 reason=network
+network=1 t=41 node=V5 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=42 node=V0 ev=RECEIVE src=V1 type=BODY height=1
+network=1 t=42 node=V0 ev=VOTE kind=PREVOTE height=1 round=0 block=52c14b2f
+network=1 t=42 node=V0 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=42 node=V0 ev=DELAY dst=V1 type=VOTE height=1 delay=13 reason=network
+network=1 t=42 node=V0 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=42 node=V0 ev=DELAY dst=V2 type=VOTE height=1 delay=11 reason=network
+network=1 t=42 node=V0 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=42 node=V0 ev=DELAY dst=V3 type=VOTE height=1 delay=17 reason=network
+network=1 t=42 node=V0 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=1 t=42 node=V0 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=1 t=42 node=V0 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=1 t=42 node=V0 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=42 node=V0 ev=DELAY dst=V7 type=VOTE height=1 delay=16 reason=network
+network=1 t=42 node=V0 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=42 node=V0 ev=DELAY dst=V8 type=VOTE height=1 delay=7 reason=network
+network=1 t=42 node=V0 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=43 node=V7 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=43 node=V1 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=43 node=V1 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=45 node=V0 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=45 node=V0 ev=LOCK height=1 round=0 block=52c14b2f
+network=1 t=45 node=V0 ev=VOTE kind=PRECOMMIT height=1 round=0 block=52c14b2f
+network=1 t=45 node=V0 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=45 node=V0 ev=DELAY dst=V1 type=VOTE height=1 delay=1 reason=network
+network=1 t=45 node=V0 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=45 node=V0 ev=DELAY dst=V2 type=VOTE height=1 delay=13 reason=network
+network=1 t=45 node=V0 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=45 node=V0 ev=DELAY dst=V3 type=VOTE height=1 delay=12 reason=network
+network=1 t=45 node=V0 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=1 t=45 node=V0 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=1 t=45 node=V0 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=1 t=45 node=V0 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=45 node=V0 ev=DELAY dst=V7 type=VOTE height=1 delay=10 reason=network
+network=1 t=45 node=V0 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=45 node=V0 ev=DELAY dst=V8 type=VOTE height=1 delay=13 reason=network
+network=1 t=45 node=V0 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=46 node=V1 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=46 node=V1 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=49 node=V7 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=49 node=V8 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=50 node=V4 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=53 node=V2 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=53 node=V2 ev=LOCK height=1 round=0 block=52c14b2f
+network=1 t=53 node=V2 ev=VOTE kind=PRECOMMIT height=1 round=0 block=52c14b2f
+network=1 t=53 node=V2 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=53 node=V2 ev=DELAY dst=V0 type=VOTE height=1 delay=2 reason=network
+network=1 t=53 node=V2 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=53 node=V2 ev=DELAY dst=V1 type=VOTE height=1 delay=2 reason=network
+network=1 t=53 node=V2 ev=SEND dst=V3 type=VOTE height=1
+network=1 t=53 node=V2 ev=DELAY dst=V3 type=VOTE height=1 delay=17 reason=network
+network=1 t=53 node=V2 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=1 t=53 node=V2 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=1 t=53 node=V2 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=1 t=53 node=V2 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=53 node=V2 ev=DELAY dst=V7 type=VOTE height=1 delay=1 reason=network
+network=1 t=53 node=V2 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=53 node=V2 ev=DELAY dst=V8 type=VOTE height=1 delay=5 reason=network
+network=1 t=53 node=V2 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=54 node=V7 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=55 node=V8 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=55 node=V7 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=55 node=V1 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=55 node=V7 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=55 node=V0 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=55 node=V1 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=56 node=V6 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=56 node=V6 ev=LOCK height=1 round=0 block=802d2006
+network=1 t=56 node=V6 ev=VOTE kind=PRECOMMIT height=1 round=0 block=802d2006
+network=1 t=56 node=V6 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=1 t=56 node=V6 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=56 node=V6 ev=DELAY dst=V1 type=VOTE height=1 delay=20 reason=network
+network=1 t=56 node=V6 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=1 t=56 node=V6 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=1 t=56 node=V6 ev=SEND dst=V4 type=VOTE height=1
+network=1 t=56 node=V6 ev=DELAY dst=V4 type=VOTE height=1 delay=16 reason=network
+network=1 t=56 node=V6 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=56 node=V6 ev=DELAY dst=V5 type=VOTE height=1 delay=8 reason=network
+network=1 t=56 node=V6 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=56 node=V6 ev=DELAY dst=V7 type=VOTE height=1 delay=6 reason=network
+network=1 t=56 node=V6 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=56 node=V6 ev=DELAY dst=V8 type=VOTE height=1 delay=20 reason=network
+network=1 t=56 node=V6 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=56 node=V8 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=57 node=V4 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=57 node=V4 ev=LOCK height=1 round=0 block=802d2006
+network=1 t=57 node=V4 ev=VOTE kind=PRECOMMIT height=1 round=0 block=802d2006
+network=1 t=57 node=V4 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=1 t=57 node=V4 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=57 node=V4 ev=DELAY dst=V1 type=VOTE height=1 delay=12 reason=network
+network=1 t=57 node=V4 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=1 t=57 node=V4 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=1 t=57 node=V4 ev=SEND dst=V5 type=VOTE height=1
+network=1 t=57 node=V4 ev=DELAY dst=V5 type=VOTE height=1 delay=7 reason=network
+network=1 t=57 node=V4 ev=SEND dst=V6 type=VOTE height=1
+network=1 t=57 node=V4 ev=DELAY dst=V6 type=VOTE height=1 delay=20 reason=network
+network=1 t=57 node=V4 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=57 node=V4 ev=DELAY dst=V7 type=VOTE height=1 delay=4 reason=network
+network=1 t=57 node=V4 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=57 node=V4 ev=DELAY dst=V8 type=VOTE height=1 delay=13 reason=network
+network=1 t=57 node=V4 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=57 node=V3 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=58 node=V7 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=58 node=V2 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=58 node=V8 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=58 node=V8 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=59 node=V3 ev=RECEIVE src=V0 type=VOTE height=1
+network=1 t=59 node=V3 ev=LOCK height=1 round=0 block=52c14b2f
+network=1 t=59 node=V3 ev=VOTE kind=PRECOMMIT height=1 round=0 block=52c14b2f
+network=1 t=59 node=V3 ev=SEND dst=V0 type=VOTE height=1
+network=1 t=59 node=V3 ev=DELAY dst=V0 type=VOTE height=1 delay=16 reason=network
+network=1 t=59 node=V3 ev=SEND dst=V1 type=VOTE height=1
+network=1 t=59 node=V3 ev=DELAY dst=V1 type=VOTE height=1 delay=9 reason=network
+network=1 t=59 node=V3 ev=SEND dst=V2 type=VOTE height=1
+network=1 t=59 node=V3 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=1 t=59 node=V3 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=1 t=59 node=V3 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=1 t=59 node=V3 ev=SEND dst=V7 type=VOTE height=1
+network=1 t=59 node=V3 ev=DELAY dst=V7 type=VOTE height=1 delay=17 reason=network
+network=1 t=59 node=V3 ev=SEND dst=V8 type=VOTE height=1
+network=1 t=59 node=V3 ev=DELAY dst=V8 type=VOTE height=1 delay=6 reason=network
+network=1 t=59 node=V3 ev=LOCAL_DELIVERY type=VOTE height=1
+network=1 t=59 node=V2 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=59 node=V2 ev=FINALIZE height=1 round=0 block=52c14b2f state=9b0222a3
+network=1 t=59 node=V2 ev=DONE height=1
+network=1 t=61 node=V6 ev=RECEIVE src=V5 type=VOTE height=1
+network=1 t=61 node=V7 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=62 node=V7 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=64 node=V5 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=64 node=V5 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=64 node=V5 ev=FINALIZE height=1 round=0 block=802d2006 state=afb493e1
+network=1 t=64 node=V5 ev=DONE height=1
+network=1 t=65 node=V8 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=68 node=V1 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=69 node=V1 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=70 node=V3 ev=RECEIVE src=V2 type=VOTE height=1
+network=1 t=70 node=V3 ev=FINALIZE height=1 round=0 block=52c14b2f state=9b0222a3
+network=1 t=70 node=V3 ev=DONE height=1
+network=1 t=70 node=V8 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=72 node=V4 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=72 node=V4 ev=FINALIZE height=1 round=0 block=802d2006 state=afb493e1
+network=1 t=72 node=V4 ev=DONE height=1
+network=1 t=75 node=V0 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=75 node=V0 ev=FINALIZE height=1 round=0 block=52c14b2f state=9b0222a3
+network=1 t=75 node=V0 ev=DONE height=1
+network=1 t=76 node=V1 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=76 node=V8 ev=RECEIVE src=V6 type=VOTE height=1
+network=1 t=76 node=V7 ev=RECEIVE src=V3 type=VOTE height=1
+network=1 t=77 node=V6 ev=RECEIVE src=V4 type=VOTE height=1
+network=1 t=77 node=V6 ev=FINALIZE height=1 round=0 block=802d2006 state=afb493e1
+network=1 t=77 node=V6 ev=DONE height=1
+network=2 t=0 node=V0 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V1 ev=BYZ_COALITION_START height=1 round=0
+network=2 t=0 node=V1 ev=BYZ_EQUIVOCATE_PROPOSAL height=1 round=0 a=52c14b2f b=802d2006
+network=2 t=0 node=V1 ev=SEND dst=V0 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V0 type=HEADER height=1 delay=20 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V2 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V2 type=HEADER height=1 delay=18 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V3 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V3 type=HEADER height=1 delay=13 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V4 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V4 type=HEADER height=1 delay=1 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V5 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V5 type=HEADER height=1 delay=20 reason=network
+network=2 t=0 node=V1 ev=SEND dst=V6 type=HEADER height=1
+network=2 t=0 node=V1 ev=DELAY dst=V6 type=HEADER height=1 delay=1 reason=network
+network=2 t=0 node=V2 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V3 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V4 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V5 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V6 ev=ROUND_START height=1 round=0
+network=2 t=0 node=V7 ev=BYZ_COALITION_START height=1 round=0
+network=2 t=0 node=V8 ev=BYZ_COALITION_START height=1 round=0
+network=2 t=1 node=V4 ev=RECEIVE src=V1 type=HEADER height=1
+network=2 t=1 node=V4 ev=REQUEST_BODY height=1 block=802d2006 peer=V1
+network=2 t=1 node=V4 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=2 t=1 node=V4 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=9 reason=network
+network=2 t=1 node=V6 ev=RECEIVE src=V1 type=HEADER height=1
+network=2 t=1 node=V6 ev=REQUEST_BODY height=1 block=802d2006 peer=V1
+network=2 t=1 node=V6 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=2 t=1 node=V6 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=17 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V0 type=VOTE height=1 delay=20 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V2 type=VOTE height=1 delay=18 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V3 type=VOTE height=1 delay=13 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V4 type=VOTE height=1 delay=11 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V5 type=VOTE height=1 delay=7 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V6 type=VOTE height=1 delay=10 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V0 type=VOTE height=1 delay=3 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V2 type=VOTE height=1 delay=15 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V3 type=VOTE height=1 delay=17 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V4 type=VOTE height=1 delay=11 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V5 type=VOTE height=1 delay=2 reason=network
+network=2 t=1 node=V1 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=1 node=V1 ev=DELAY dst=V6 type=VOTE height=1 delay=1 reason=network
+network=2 t=1 node=V1 ev=BYZ_EQUIVOCATE_VOTE kind=PREVOTE+PRECOMMIT height=1 round=0 a=52c14b2f b=802d2006
+network=2 t=1 node=V7 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V0 type=VOTE height=1 delay=14 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=1 node=V7 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V3 type=VOTE height=1 delay=15 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V4 type=VOTE height=1 delay=7 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V5 type=VOTE height=1 delay=5 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V6 type=VOTE height=1 delay=13 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V0 type=VOTE height=1 delay=11 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V2 type=VOTE height=1 delay=2 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V3 type=VOTE height=1 delay=15 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V4 type=VOTE height=1 delay=4 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V5 type=VOTE height=1 delay=4 reason=network
+network=2 t=1 node=V7 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=1 node=V7 ev=DELAY dst=V6 type=VOTE height=1 delay=1 reason=network
+network=2 t=1 node=V7 ev=BYZ_EQUIVOCATE_VOTE kind=PREVOTE+PRECOMMIT height=1 round=0 a=52c14b2f b=802d2006
+network=2 t=1 node=V8 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V0 type=VOTE height=1 delay=17 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V2 type=VOTE height=1 delay=20 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V3 type=VOTE height=1 delay=14 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=1 node=V8 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V5 type=VOTE height=1 delay=19 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V6 type=VOTE height=1 delay=4 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V0 type=VOTE height=1 delay=15 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V2 type=VOTE height=1 delay=14 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V3 type=VOTE height=1 delay=10 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V4 type=VOTE height=1 delay=16 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V5 type=VOTE height=1 delay=4 reason=network
+network=2 t=1 node=V8 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=1 node=V8 ev=DELAY dst=V6 type=VOTE height=1 delay=9 reason=network
+network=2 t=1 node=V8 ev=BYZ_EQUIVOCATE_VOTE kind=PREVOTE+PRECOMMIT height=1 round=0 a=52c14b2f b=802d2006
+network=2 t=1 node=V2 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=1 node=V4 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=2 node=V6 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=2 node=V6 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=3 node=V5 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=3 node=V2 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=4 node=V0 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=5 node=V4 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=5 node=V5 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=5 node=V6 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=5 node=V5 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=6 node=V5 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=8 node=V5 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=8 node=V4 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=10 node=V1 ev=RECEIVE src=V4 type=REQUEST_BODY height=1
+network=2 t=10 node=V1 ev=SEND dst=V4 type=BODY height=1
+network=2 t=10 node=V1 ev=DELAY dst=V4 type=BODY height=1 delay=8 reason=network
+network=2 t=10 node=V6 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=11 node=V6 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=11 node=V3 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=12 node=V4 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=12 node=V4 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=12 node=V0 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=13 node=V3 ev=RECEIVE src=V1 type=HEADER height=1
+network=2 t=13 node=V3 ev=REQUEST_BODY height=1 block=52c14b2f peer=V1
+network=2 t=13 node=V3 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=2 t=13 node=V3 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=7 reason=network
+network=2 t=14 node=V3 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=14 node=V6 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=15 node=V0 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=15 node=V3 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=15 node=V2 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=16 node=V2 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=16 node=V3 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=16 node=V3 ev=RECEIVE src=V7 type=VOTE height=1
+network=2 t=16 node=V0 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=17 node=V4 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=18 node=V2 ev=RECEIVE src=V1 type=HEADER height=1
+network=2 t=18 node=V2 ev=REQUEST_BODY height=1 block=52c14b2f peer=V1
+network=2 t=18 node=V2 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=2 t=18 node=V2 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=7 reason=network
+network=2 t=18 node=V1 ev=RECEIVE src=V6 type=REQUEST_BODY height=1
+network=2 t=18 node=V1 ev=SEND dst=V6 type=BODY height=1
+network=2 t=18 node=V1 ev=DELAY dst=V6 type=BODY height=1 delay=6 reason=network
+network=2 t=18 node=V3 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=18 node=V0 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=18 node=V4 ev=RECEIVE src=V1 type=BODY height=1
+network=2 t=18 node=V4 ev=VOTE kind=PREVOTE height=1 round=0 block=802d2006
+network=2 t=18 node=V4 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=2 t=18 node=V4 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=18 node=V4 ev=DELAY dst=V1 type=VOTE height=1 delay=7 reason=network
+network=2 t=18 node=V4 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=2 t=18 node=V4 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=2 t=18 node=V4 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=18 node=V4 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=18 node=V4 ev=DELAY dst=V6 type=VOTE height=1 delay=19 reason=network
+network=2 t=18 node=V4 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=18 node=V4 ev=DELAY dst=V7 type=VOTE height=1 delay=11 reason=network
+network=2 t=18 node=V4 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=18 node=V4 ev=DELAY dst=V8 type=VOTE height=1 delay=7 reason=network
+network=2 t=18 node=V4 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=18 node=V5 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=19 node=V2 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=20 node=V0 ev=RECEIVE src=V1 type=HEADER height=1
+network=2 t=20 node=V0 ev=REQUEST_BODY height=1 block=52c14b2f peer=V1
+network=2 t=20 node=V0 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=2 t=20 node=V0 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=19 reason=network
+network=2 t=20 node=V5 ev=RECEIVE src=V1 type=HEADER height=1
+network=2 t=20 node=V5 ev=REQUEST_BODY height=1 block=802d2006 peer=V1
+network=2 t=20 node=V5 ev=SEND dst=V1 type=REQUEST_BODY height=1
+network=2 t=20 node=V5 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=20 reason=network
+network=2 t=20 node=V5 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=20 node=V1 ev=RECEIVE src=V3 type=REQUEST_BODY height=1
+network=2 t=20 node=V1 ev=SEND dst=V3 type=BODY height=1
+network=2 t=20 node=V1 ev=DELAY dst=V3 type=BODY height=1 delay=6 reason=network
+network=2 t=21 node=V0 ev=RECEIVE src=V1 type=VOTE height=1
+network=2 t=21 node=V2 ev=RECEIVE src=V8 type=VOTE height=1
+network=2 t=24 node=V6 ev=RECEIVE src=V1 type=BODY height=1
+network=2 t=24 node=V6 ev=VOTE kind=PREVOTE height=1 round=0 block=802d2006
+network=2 t=24 node=V6 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=2 t=24 node=V6 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=24 node=V6 ev=DELAY dst=V1 type=VOTE height=1 delay=10 reason=network
+network=2 t=24 node=V6 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=2 t=24 node=V6 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=2 t=24 node=V6 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=24 node=V6 ev=DELAY dst=V4 type=VOTE height=1 delay=14 reason=network
+network=2 t=24 node=V6 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=24 node=V6 ev=DELAY dst=V5 type=VOTE height=1 delay=5 reason=network
+network=2 t=24 node=V6 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=24 node=V6 ev=DELAY dst=V7 type=VOTE height=1 delay=14 reason=network
+network=2 t=24 node=V6 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=24 node=V6 ev=DELAY dst=V8 type=VOTE height=1 delay=15 reason=network
+network=2 t=24 node=V6 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=25 node=V1 ev=RECEIVE src=V2 type=REQUEST_BODY height=1
+network=2 t=25 node=V1 ev=SEND dst=V2 type=BODY height=1
+network=2 t=25 node=V1 ev=DELAY dst=V2 type=BODY height=1 delay=4 reason=network
+network=2 t=25 node=V1 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=25 node=V8 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=26 node=V3 ev=RECEIVE src=V1 type=BODY height=1
+network=2 t=26 node=V3 ev=VOTE kind=PREVOTE height=1 round=0 block=52c14b2f
+network=2 t=26 node=V3 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=26 node=V3 ev=DELAY dst=V0 type=VOTE height=1 delay=3 reason=network
+network=2 t=26 node=V3 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=26 node=V3 ev=DELAY dst=V1 type=VOTE height=1 delay=6 reason=network
+network=2 t=26 node=V3 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=26 node=V3 ev=DELAY dst=V2 type=VOTE height=1 delay=9 reason=network
+network=2 t=26 node=V3 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=2 t=26 node=V3 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=2 t=26 node=V3 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=2 t=26 node=V3 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=26 node=V3 ev=DELAY dst=V7 type=VOTE height=1 delay=17 reason=network
+network=2 t=26 node=V3 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=26 node=V3 ev=DELAY dst=V8 type=VOTE height=1 delay=11 reason=network
+network=2 t=26 node=V3 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=29 node=V7 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=29 node=V5 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=29 node=V2 ev=RECEIVE src=V1 type=BODY height=1
+network=2 t=29 node=V2 ev=VOTE kind=PREVOTE height=1 round=0 block=52c14b2f
+network=2 t=29 node=V2 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=29 node=V2 ev=DELAY dst=V0 type=VOTE height=1 delay=16 reason=network
+network=2 t=29 node=V2 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=29 node=V2 ev=DELAY dst=V1 type=VOTE height=1 delay=17 reason=network
+network=2 t=29 node=V2 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=29 node=V2 ev=DELAY dst=V3 type=VOTE height=1 delay=5 reason=network
+network=2 t=29 node=V2 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=2 t=29 node=V2 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=2 t=29 node=V2 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=2 t=29 node=V2 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=29 node=V2 ev=DELAY dst=V7 type=VOTE height=1 delay=4 reason=network
+network=2 t=29 node=V2 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=29 node=V2 ev=DELAY dst=V8 type=VOTE height=1 delay=10 reason=network
+network=2 t=29 node=V2 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=29 node=V0 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=32 node=V1 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=33 node=V7 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=34 node=V1 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=34 node=V3 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=35 node=V2 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=37 node=V6 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=37 node=V8 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=38 node=V4 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=38 node=V7 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=39 node=V1 ev=RECEIVE src=V0 type=REQUEST_BODY height=1
+network=2 t=39 node=V1 ev=SEND dst=V0 type=BODY height=1
+network=2 t=39 node=V1 ev=DELAY dst=V0 type=BODY height=1 delay=3 reason=network
+network=2 t=39 node=V8 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=39 node=V8 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=40 node=V1 ev=RECEIVE src=V5 type=REQUEST_BODY height=1
+network=2 t=40 node=V1 ev=SEND dst=V5 type=BODY height=1
+network=2 t=40 node=V1 ev=DELAY dst=V5 type=BODY height=1 delay=1 reason=network
+network=2 t=41 node=V5 ev=RECEIVE src=V1 type=BODY height=1
+network=2 t=41 node=V5 ev=VOTE kind=PREVOTE height=1 round=0 block=802d2006
+network=2 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=2 t=41 node=V5 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V1 type=VOTE height=1 delay=2 reason=network
+network=2 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=2 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=2 t=41 node=V5 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V4 type=VOTE height=1 delay=16 reason=network
+network=2 t=41 node=V5 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V6 type=VOTE height=1 delay=15 reason=network
+network=2 t=41 node=V5 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V7 type=VOTE height=1 delay=8 reason=network
+network=2 t=41 node=V5 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V8 type=VOTE height=1 delay=14 reason=network
+network=2 t=41 node=V5 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=41 node=V5 ev=LOCK height=1 round=0 block=802d2006
+network=2 t=41 node=V5 ev=VOTE kind=PRECOMMIT height=1 round=0 block=802d2006
+network=2 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=2 t=41 node=V5 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V1 type=VOTE height=1 delay=2 reason=network
+network=2 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=2 t=41 node=V5 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=2 t=41 node=V5 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V4 type=VOTE height=1 delay=9 reason=network
+network=2 t=41 node=V5 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V6 type=VOTE height=1 delay=20 reason=network
+network=2 t=41 node=V5 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V7 type=VOTE height=1 delay=14 reason=network
+network=2 t=41 node=V5 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=41 node=V5 ev=DELAY dst=V8 type=VOTE height=1 delay=15 reason=network
+network=2 t=41 node=V5 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=42 node=V0 ev=RECEIVE src=V1 type=BODY height=1
+network=2 t=42 node=V0 ev=VOTE kind=PREVOTE height=1 round=0 block=52c14b2f
+network=2 t=42 node=V0 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=42 node=V0 ev=DELAY dst=V1 type=VOTE height=1 delay=13 reason=network
+network=2 t=42 node=V0 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=42 node=V0 ev=DELAY dst=V2 type=VOTE height=1 delay=11 reason=network
+network=2 t=42 node=V0 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=42 node=V0 ev=DELAY dst=V3 type=VOTE height=1 delay=17 reason=network
+network=2 t=42 node=V0 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=2 t=42 node=V0 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=2 t=42 node=V0 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=2 t=42 node=V0 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=42 node=V0 ev=DELAY dst=V7 type=VOTE height=1 delay=16 reason=network
+network=2 t=42 node=V0 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=42 node=V0 ev=DELAY dst=V8 type=VOTE height=1 delay=7 reason=network
+network=2 t=42 node=V0 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=43 node=V7 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=43 node=V1 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=43 node=V1 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=45 node=V0 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=45 node=V0 ev=LOCK height=1 round=0 block=52c14b2f
+network=2 t=45 node=V0 ev=VOTE kind=PRECOMMIT height=1 round=0 block=52c14b2f
+network=2 t=45 node=V0 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=45 node=V0 ev=DELAY dst=V1 type=VOTE height=1 delay=1 reason=network
+network=2 t=45 node=V0 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=45 node=V0 ev=DELAY dst=V2 type=VOTE height=1 delay=13 reason=network
+network=2 t=45 node=V0 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=45 node=V0 ev=DELAY dst=V3 type=VOTE height=1 delay=12 reason=network
+network=2 t=45 node=V0 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=2 t=45 node=V0 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=2 t=45 node=V0 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=2 t=45 node=V0 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=45 node=V0 ev=DELAY dst=V7 type=VOTE height=1 delay=10 reason=network
+network=2 t=45 node=V0 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=45 node=V0 ev=DELAY dst=V8 type=VOTE height=1 delay=13 reason=network
+network=2 t=45 node=V0 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=46 node=V1 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=46 node=V1 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=49 node=V7 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=49 node=V8 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=50 node=V4 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=53 node=V2 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=53 node=V2 ev=LOCK height=1 round=0 block=52c14b2f
+network=2 t=53 node=V2 ev=VOTE kind=PRECOMMIT height=1 round=0 block=52c14b2f
+network=2 t=53 node=V2 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=53 node=V2 ev=DELAY dst=V0 type=VOTE height=1 delay=2 reason=network
+network=2 t=53 node=V2 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=53 node=V2 ev=DELAY dst=V1 type=VOTE height=1 delay=2 reason=network
+network=2 t=53 node=V2 ev=SEND dst=V3 type=VOTE height=1
+network=2 t=53 node=V2 ev=DELAY dst=V3 type=VOTE height=1 delay=17 reason=network
+network=2 t=53 node=V2 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=2 t=53 node=V2 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=2 t=53 node=V2 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=2 t=53 node=V2 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=53 node=V2 ev=DELAY dst=V7 type=VOTE height=1 delay=1 reason=network
+network=2 t=53 node=V2 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=53 node=V2 ev=DELAY dst=V8 type=VOTE height=1 delay=5 reason=network
+network=2 t=53 node=V2 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=54 node=V7 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=55 node=V8 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=55 node=V7 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=55 node=V1 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=55 node=V7 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=55 node=V0 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=55 node=V1 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=56 node=V6 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=56 node=V6 ev=LOCK height=1 round=0 block=802d2006
+network=2 t=56 node=V6 ev=VOTE kind=PRECOMMIT height=1 round=0 block=802d2006
+network=2 t=56 node=V6 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=2 t=56 node=V6 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=56 node=V6 ev=DELAY dst=V1 type=VOTE height=1 delay=20 reason=network
+network=2 t=56 node=V6 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=2 t=56 node=V6 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=2 t=56 node=V6 ev=SEND dst=V4 type=VOTE height=1
+network=2 t=56 node=V6 ev=DELAY dst=V4 type=VOTE height=1 delay=16 reason=network
+network=2 t=56 node=V6 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=56 node=V6 ev=DELAY dst=V5 type=VOTE height=1 delay=8 reason=network
+network=2 t=56 node=V6 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=56 node=V6 ev=DELAY dst=V7 type=VOTE height=1 delay=6 reason=network
+network=2 t=56 node=V6 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=56 node=V6 ev=DELAY dst=V8 type=VOTE height=1 delay=20 reason=network
+network=2 t=56 node=V6 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=56 node=V8 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=57 node=V4 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=57 node=V4 ev=LOCK height=1 round=0 block=802d2006
+network=2 t=57 node=V4 ev=VOTE kind=PRECOMMIT height=1 round=0 block=802d2006
+network=2 t=57 node=V4 ev=DELAY type=VOTE height=1 dst=V0 reason=test_partition until=5000
+network=2 t=57 node=V4 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=57 node=V4 ev=DELAY dst=V1 type=VOTE height=1 delay=12 reason=network
+network=2 t=57 node=V4 ev=DELAY type=VOTE height=1 dst=V2 reason=test_partition until=5000
+network=2 t=57 node=V4 ev=DELAY type=VOTE height=1 dst=V3 reason=test_partition until=5000
+network=2 t=57 node=V4 ev=SEND dst=V5 type=VOTE height=1
+network=2 t=57 node=V4 ev=DELAY dst=V5 type=VOTE height=1 delay=7 reason=network
+network=2 t=57 node=V4 ev=SEND dst=V6 type=VOTE height=1
+network=2 t=57 node=V4 ev=DELAY dst=V6 type=VOTE height=1 delay=20 reason=network
+network=2 t=57 node=V4 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=57 node=V4 ev=DELAY dst=V7 type=VOTE height=1 delay=4 reason=network
+network=2 t=57 node=V4 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=57 node=V4 ev=DELAY dst=V8 type=VOTE height=1 delay=13 reason=network
+network=2 t=57 node=V4 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=57 node=V3 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=58 node=V7 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=58 node=V2 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=58 node=V8 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=58 node=V8 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=59 node=V3 ev=RECEIVE src=V0 type=VOTE height=1
+network=2 t=59 node=V3 ev=LOCK height=1 round=0 block=52c14b2f
+network=2 t=59 node=V3 ev=VOTE kind=PRECOMMIT height=1 round=0 block=52c14b2f
+network=2 t=59 node=V3 ev=SEND dst=V0 type=VOTE height=1
+network=2 t=59 node=V3 ev=DELAY dst=V0 type=VOTE height=1 delay=16 reason=network
+network=2 t=59 node=V3 ev=SEND dst=V1 type=VOTE height=1
+network=2 t=59 node=V3 ev=DELAY dst=V1 type=VOTE height=1 delay=9 reason=network
+network=2 t=59 node=V3 ev=SEND dst=V2 type=VOTE height=1
+network=2 t=59 node=V3 ev=DELAY type=VOTE height=1 dst=V4 reason=test_partition until=5000
+network=2 t=59 node=V3 ev=DELAY type=VOTE height=1 dst=V5 reason=test_partition until=5000
+network=2 t=59 node=V3 ev=DELAY type=VOTE height=1 dst=V6 reason=test_partition until=5000
+network=2 t=59 node=V3 ev=SEND dst=V7 type=VOTE height=1
+network=2 t=59 node=V3 ev=DELAY dst=V7 type=VOTE height=1 delay=17 reason=network
+network=2 t=59 node=V3 ev=SEND dst=V8 type=VOTE height=1
+network=2 t=59 node=V3 ev=DELAY dst=V8 type=VOTE height=1 delay=6 reason=network
+network=2 t=59 node=V3 ev=LOCAL_DELIVERY type=VOTE height=1
+network=2 t=59 node=V2 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=59 node=V2 ev=FINALIZE height=1 round=0 block=52c14b2f state=9b0222a3
+network=2 t=59 node=V2 ev=DONE height=1
+network=2 t=61 node=V6 ev=RECEIVE src=V5 type=VOTE height=1
+network=2 t=61 node=V7 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=62 node=V7 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=64 node=V5 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=64 node=V5 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=64 node=V5 ev=FINALIZE height=1 round=0 block=802d2006 state=afb493e1
+network=2 t=64 node=V5 ev=DONE height=1
+network=2 t=65 node=V8 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=68 node=V1 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=69 node=V1 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=70 node=V3 ev=RECEIVE src=V2 type=VOTE height=1
+network=2 t=70 node=V3 ev=FINALIZE height=1 round=0 block=52c14b2f state=9b0222a3
+network=2 t=70 node=V3 ev=DONE height=1
+network=2 t=70 node=V8 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=72 node=V4 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=72 node=V4 ev=FINALIZE height=1 round=0 block=802d2006 state=afb493e1
+network=2 t=72 node=V4 ev=DONE height=1
+network=2 t=75 node=V0 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=75 node=V0 ev=FINALIZE height=1 round=0 block=52c14b2f state=9b0222a3
+network=2 t=75 node=V0 ev=DONE height=1
+network=2 t=76 node=V1 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=76 node=V8 ev=RECEIVE src=V6 type=VOTE height=1
+network=2 t=76 node=V7 ev=RECEIVE src=V3 type=VOTE height=1
+network=2 t=77 node=V6 ev=RECEIVE src=V4 type=VOTE height=1
+network=2 t=77 node=V6 ev=FINALIZE height=1 round=0 block=802d2006 state=afb493e1
+network=2 t=77 node=V6 ev=DONE height=1
+# outcome=passed

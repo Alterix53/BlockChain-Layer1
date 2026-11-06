@@ -1,0 +1,102 @@
+% !TEX program = xelatex
+\documentclass[12pt]{report}
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\usepackage[a4paper, top=1.5cm, bottom=1.5cm, left=3cm, right=3cm]{geometry}
+\usepackage{listings}
+\usepackage{tabularx}
+\usepackage[ruled, vlined, linesnumbered]{algorithm2e}
+\usepackage[table]{xcolor}
+\newcommand\mycommfont[1]{\footnotesize\ttfamily\textcolor{gray}{#1}}
+\SetCommentSty{mycommfont}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize, % Font chữ code nhỏ hơn text một chút
+    breakatwhitespace=false,         
+    breaklines=true,                 % Tự động xuống dòng nếu code quá dài
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    % Hiện số dòng bên trái
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4
+}
+
+\lstset{style=mystyle}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!10},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny,
+}
+
+\setdefaultlanguage{vietnamese}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage[hidelinks]{hyperref}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{indentfirst}
+
+% Header & Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{BLOCKCHAIN}
+\setlength{\headheight}{25pt}
+\setlength{\headsep}{15pt}
+\fancyhead[R]{\leftmark}
+\fancyfoot[C]{\thepage}
+\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thefigure}{\arabic{figure}}
+\renewcommand{\thetable}{\arabic{table}}
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+% Trang bìa
+\include{title_page}
+\clearpage
+\hypersetup{pageanchor=true}
+
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+% Các mục
+%\input{contribution.tex} 
+\input{chapter/chapter_2}
+\input{chapter/chapter_3}
+\input{chapter/chapter_4}
+\input{chapter/chapter_5}
+\input{chapter/chapter_6}
+%\include{chapter/chapter_7}
+\input{chapter/chapter_8}
+
+%\bibliographystyle{plain}   % hoặc unsrt, alpha, ieee...
+%\bibliography{references}   % tên file .bib (không cần .bib)
+
+\end{document}

@@ -1,0 +1,103 @@
+\section{Các vấn đề khi triển khai}
+\label{sec:implementation}
+
+\subsection{Các cơ chế bảo vệ (Guards)}.
+
+Bảy luật tại mục 6.1 của đề bài được hiện thực như sau:
+
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{|p{0.8cm}|p{7.0cm}|p{4.6cm}|}
+\caption{Tóm tắt bảy luật đồng thuận và kiểm thử}\label{tab:consensus-guards}\\
+\hline
+\textbf{Luật} & \textbf{Cách kiểm tra và xử lý} & \textbf{Kiểm thử kiểm chứng} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Luật} & \textbf{Cách kiểm tra và xử lý} & \textbf{Kiểm thử kiểm chứng} \\
+\hline
+\endhead
+1 & Khóa slot \texttt{(height, round, PREVOTE)} trong \texttt{signed}; nếu đã ký thì không ký hash khác. & Gửi hai PREVOTE khác block cùng slot; chỉ một chữ ký được phát. \\
+\hline
+2 & Khóa riêng slot \texttt{(height, round, PRECOMMIT)}; \texttt{kind} tách slot này khỏi PREVOTE. & Yêu cầu hai PRECOMMIT khác block cùng slot; chỉ một chữ ký được phát. \\
+\hline
+3 & Kiểm tra height, parent, \texttt{tx\_root}, giao dịch, \texttt{state\_hash}, proposer và chữ ký Header; sai thì PREVOTE NIL. & Thử sai chữ ký, parent, giao dịch hoặc state hash; block bị từ chối. \\
+\hline
+4 & Đếm ít nhất $2f+1$ PREVOTE cùng block khác NIL rồi lưu block và round vào \texttt{locked}. & Cấp quorum $2f+1$; xác nhận \texttt{locked} được cập nhật. \\
+\hline
+5 & Đang khóa B, chỉ chuyển sang C khi có POL hợp lệ ở round cao hơn; proposer dùng POL cao nhất khi thích hợp. & Khóa B, cấp POL cho C ở round cao hơn; chỉ chuyển khi đủ điều kiện. \\
+\hline
+6 & Kiểm tra phase, chain, height/round và chữ ký trong domain \texttt{VOTE:chain\_id}; chữ ký ràng buộc các trường vote. & Gửi vote sai domain, chữ ký hoặc cửa sổ height/round; vote bị bỏ qua. \\
+\hline
+7 & \texttt{votes} chỉ đếm một vote mỗi voter/slot; vote lặp bị bỏ qua, hash khác ghi \texttt{EQUIVOCATION}. & Phát lại và gửi vote mâu thuẫn; không đếm trùng và có log equivocation. \\
+\hline
+\end{longtable}
+\normalsize
+\setlength{\tabcolsep}{6pt}
+
+
+\subsection{Giao tiếp qua mạng}
+
+Các validator lan truyền thông tin bằng gossip qua topology trong mạng mô phỏng ở \texttt{sim.py}, không phụ thuộc máy chủ trung tâm.
+
+\subsubsection{Phát tán Header trước, Body sau}
+
+Block proposal được truyền theo hai bước:
+\begin{enumerate}
+    \item Proposer tạo block, lưu phần thân giao dịch trong \texttt{self.bodies} và chỉ phát Header qua \texttt{send\_proposal()}.
+    \item Validator nhận Header tại \texttt{on\_header()}, kiểm tra các trường có thể xác minh từ Header và chữ ký.
+    \item Nếu chấp nhận Header, node gửi \texttt{REQUEST\_BODY} để lấy phần thân.
+    \item Proposer xử lý yêu cầu tại \texttt{on\_request\_body()} và gửi Body tương ứng.
+    \item Node nhận Body tại \texttt{on\_body()}, kiểm tra tính toàn vẹn và hợp lệ trước khi sử dụng.
+\end{enumerate}
+Tập \texttt{pending\_headers} lưu Header đã chấp nhận nhưng chưa có Body; \texttt{requested\_bodies} ngăn gửi lặp yêu cầu tải cùng một Body. Cách truyền này hạn chế tải dữ liệu không cần thiết vì node chỉ yêu cầu Body sau khi Header vượt qua bước kiểm tra ban đầu.
+
+
+\subsubsection{Rate Limit và Peer Blocking}
+
+Trong \texttt{sim.py}, giới hạn tốc độ gửi và cơ chế tạm khóa peer giúp hạn chế spam hoặc gửi quá nhiều thông điệp:
+\begin{itemize}
+    \item \textbf{Outbound rate limit:} \texttt{\_reserve\_send\_time()} dùng Sliding Window để xác định thời điểm gửi sớm nhất. Thông điệp vượt hạn mức được hoãn bằng sự kiện \texttt{SEND\_READY}.
+    \item \textbf{Inbound peer throttling:} \texttt{\_receive()} đếm thông điệp từ từng peer trong cửa sổ thời gian; peer vượt ngưỡng bị tạm khóa.
+    \item \textbf{Peer blocking:} \texttt{blocked\_peers} lưu peer bị khóa và thời điểm hết hạn.
+    \item \textbf{Unblocking:} Sự kiện \texttt{UNBLOCK} được đưa vào hàng đợi; khi hết hạn, trạng thái chặn được gỡ và peer có thể gửi lại.
+\end{itemize}
+Các sự kiện \texttt{DELAY}, \texttt{BLOCK}, \texttt{DROP} và \texttt{UNBLOCK} được ghi log để kiểm tra hoạt động của cơ chế bảo vệ mạng.
+
+\subsection{Cơ chế đồng thuận}
+
+\subsubsection{Gossip giao dịch và Mempool}
+
+Khi nhận giao dịch, \texttt{on\_tx()} kiểm tra định dạng, tính hash để loại giao dịch đã có trong \texttt{seen\_tx\_hashes}, xác minh tài khoản gửi và chữ ký Ed25519, rồi kiểm tra namespace theo dạng \texttt{sender/...}. Node cũng kiểm tra nonce không bị lặp hoặc cũ so với trạng thái hiện tại. Giao dịch hợp lệ được thêm vào \texttt{mempool} và phát tiếp tới các peer.
+
+Khi tạo block, proposer chọn giao dịch trong mempool theo thứ tự \texttt{(sender, nonce)} và giới hạn số lượng bằng \texttt{max\_txs}. Cách sắp xếp này giúp các proposer lựa chọn giao dịch nhất quán hơn.
+
+\subsubsection{Timeout và Round Skipping}
+
+Timeout tăng dần theo round để tránh dừng khi proposer không hoạt động hoặc thông điệp bị mất:
+\[
+\operatorname{Timeout}(r)=\texttt{base\_timeout}+r\times\texttt{timeout\_inc}.
+\]
+Hàm \texttt{start\_round()} đăng ký timeout PROPOSE và timeout ROUND dự phòng. Khi timeout, node bỏ phiếu NIL hoặc bắt đầu round mới tùy trạng thái. Ngoài ra, \texttt{skip\_target()} xác định round cao nhất mà ít nhất $f+1$ validator khác nhau đã đạt tới. Nếu round này lớn hơn round hiện tại, \texttt{maybe\_skip\_round()} giúp node chuyển nhanh tới round mới thay vì tiếp tục chờ.
+
+\subsubsection{Mở khóa bằng POL và đề xuất lại block}
+
+Theo Luật 5, validator đang khóa block B không được tùy ý chuyển sang C; chỉ được chuyển khi quan sát POL hợp lệ cho C ở round cao hơn. Các hàm liên quan:
+\begin{itemize}
+    \item \texttt{on\_polka()} kiểm tra loại vote, height, round, block hash, voter duy nhất và chữ ký; chỉ chấp nhận khi có ít nhất $2f+1$ PREVOTE hợp lệ cho cùng block khác NIL.
+    \item \texttt{best\_polka()} tìm POL hợp lệ ở round cao nhất nhỏ hơn round hiện tại, khi node đã có block tương ứng và block vượt qua \texttt{check\_block()}.
+    \item \texttt{propose()} đề xuất lại block đã đạt POL thay vì tạo block mới, đồng thời ghi nhận \texttt{pol\_round}.
+\end{itemize}
+
+\subsection{Tính tất định của mô phỏng (Determinism)}
+
+\begin{enumerate}
+    \item \textbf{Đồng hồ ảo:} Mạng dùng \texttt{self.now} thay thời gian thực. Đồng hồ chỉ tiến khi mô phỏng lấy sự kiện kế tiếp ra xử lý, nên kết quả không phụ thuộc tốc độ máy hay thời gian hệ điều hành.
+    \item \textbf{Sắp xếp trước khi duyệt:} Dictionary và tập hợp ảnh hưởng kết quả được duyệt theo thứ tự xác định bằng \texttt{sorted()}. Ví dụ, mempool theo \texttt{(sender, nonce)}, validator theo ID, và dữ liệu dùng tính hash được sắp trước khi mã hóa.
+    \item \textbf{Khóa phụ \texttt{seq\_no}:} Hàng đợi heap \texttt{self.q} lưu sự kiện dạng
+    \[
+    (t,\ seq\_no,\ kind,\ src,\ dst,\ payload),
+    \]
+    trong đó \texttt{t} là thời điểm và \texttt{seq\_no} tăng dần khi thêm sự kiện. Khi nhiều sự kiện đồng thời, khóa này giữ thứ tự ổn định và tránh so sánh payload khác kiểu.
+    \item \textbf{PRNG riêng và seed cố định:} Mạng dùng PRNG riêng khởi tạo từ seed cấu hình; mỗi node cũng có PRNG riêng nếu cần hành vi ngẫu nhiên. Tách PRNG tránh hoạt động của node này làm thay đổi chuỗi ngẫu nhiên của node khác.
+\end{enumerate}

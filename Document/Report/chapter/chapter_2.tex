@@ -1,0 +1,36 @@
+\section{Cấu trúc thư mục}
+\label{sec:project-structure}
+
+Thư mục nộp \texttt{Lab01\_23127005\_23127028\_23127183\_23127536\_23127042} được viết gọn thành \texttt{Lab01\_<MSSV>/} dưới đây; chỉ liệt kê các thành phần chính.
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize,numbers=none,caption={Cấu trúc thư mục nộp bài},label={lst:project-tree}]
+Lab01_<MSSV>/
+|-- src/
+|   |-- main.py           # Chay mo phong
+|   |-- configuration.py  # Doc, kiem tra cau hinh
+|   |-- identities.py     # Nap danh tinh va khoa
+|   |-- common.py         # Du lieu, ma hoa, hash, chu ky
+|   |-- execution.py      # Thuc thi giao dich, state
+|   |-- node.py           # Dong thuan, gossip, catch-up
+|   |-- sim.py            # Mang, hang doi, dong ho ao
+|   |-- byzantine.py      # Hanh vi tan cong
+|   `-- validation.py     # Kiem tra ket qua mo phong
+|-- config/               # default.json, identities.json
+|-- tests/
+|   |-- unit/             # Kiem thu thanh phan
+|   |-- integration/      # Tich hop CLI va logging
+|   |-- e2e/              # T1-T8 va kich ban mo rong
+|   |-- regression/       # Ngan loi cu tai dien
+|   |-- __main__.py       # Chay test, luu ket qua
+|   |-- c_helpers.py      # Tao node va du lieu test
+|   |-- event_logs.py     # Thu thap log tung test
+|   |-- independent_oracle.py # Kiem chung doc lap
+|   `-- test_mutation_gate.py # Test phat hien loi co y
+|-- logs/                 # Log mo phong, test va console
+|-- requirements.txt      # Phu thuoc cryptography
+`-- README.md             # Huong dan cai dat va chay
+\end{lstlisting}
+
+\texttt{src/main.py} chạy mô phỏng qua \texttt{python -m src.main}; \texttt{tests/\_\_main\_\_.py} chạy kiểm thử qua \texttt{python -m tests -v}. Ba file hỗ trợ trong \texttt{tests/} lần lượt chuẩn bị dữ liệu, thu log và kiểm chứng ledger/state độc lập với các hàm xử lý trong \texttt{src/}.
+
+Trong \texttt{logs/}, các nhóm \texttt{tests/}, \texttt{e2e/} và \texttt{t1-t8/} lưu từng lần chạy tại \texttt{run-*/}; mỗi run có \texttt{summary.json} và log từng test. Console ghi tổng số test, thời gian và kết quả; bằng chứng cụ thể được dẫn ở Mục~\ref{sec:testing}. Các lệnh cài đặt và chạy chi tiết nằm trong \texttt{README.md}.

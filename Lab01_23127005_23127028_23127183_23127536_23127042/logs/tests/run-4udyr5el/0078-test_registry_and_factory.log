@@ -1,0 +1,2 @@
+# test=tests.unit.test_byzantine.TestConfigure.test_registry_and_factory
+# outcome=passed

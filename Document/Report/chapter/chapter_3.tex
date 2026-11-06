@@ -1,0 +1,19 @@
+\section{Giới thiệu}
+\label{sec:introduction}
+
+\subsection{Mục tiêu bài lab}
+Bài lab yêu cầu xây dựng blockchain Layer 1 tối giản, nơi các validator dùng thông điệp có chữ ký qua mạng mô phỏng để thống nhất ledger và trạng thái, không cần cơ quan trung tâm. Với $n=3f+1$, tối đa $f$ validator Byzantine và mạng bán đồng bộ (độ trễ tối đa $\Delta$ sau GST), hệ thống phải giữ safety mọi lúc và bảo đảm liveness sau GST khi proposer trung thực được chọn và mạng ổn định trở lại.
+
+
+\subsection{Các lựa chọn thiết kế chính}
+
+Các lựa chọn thiết kế của hệ thống được tóm tắt như sau:
+\begin{itemize}
+    \item \textbf{Đồng thuận:} Dùng giao thức BFT với các bước \texttt{Propose}, \texttt{Prevote}, \texttt{Precommit} và \texttt{Commit}.
+    \item \textbf{Mô phỏng mạng:} Dùng mô phỏng sự kiện rời rạc, hỗ trợ trễ, mất, nhân bản và đảo thứ tự thông điệp; seed cố định giúp tái lập các yếu tố ngẫu nhiên.
+    \item \textbf{Xác thực thông điệp:} Dùng chữ ký Ed25519 và domain separation theo \texttt{TX:chain\_id}, \texttt{HEADER:chain\_id} và \texttt{VOTE:chain\_id} để ngăn giả mạo và tái sử dụng chữ ký sai ngữ cảnh.
+    \item \textbf{Thực thi giao dịch:} Áp dụng giao dịch tuần tự, tất định trên state key--value; mỗi tài khoản chỉ được sửa namespace của mình và giao dịch phải có chữ ký, nonce hợp lệ.
+    \item \textbf{Cam kết trạng thái:} Mã hóa dữ liệu theo dạng chuẩn rồi băm SHA-256, để các node xử lý cùng danh sách giao dịch theo cùng thứ tự sẽ tạo cùng state hash.
+    \item \textbf{Truyền tải block:} Gửi header trước; chỉ gửi body sau khi node nhận chấp thuận header tương ứng.
+    \item \textbf{Chịu lỗi Byzantine:} Mô phỏng node im lặng, equivocation, block không hợp lệ.
+\end{itemize}

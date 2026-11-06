@@ -1,0 +1,4 @@
+Tất định (2 lần chạy giống hệt): True
+OK: 5 block được chốt, mọi node trung thực cùng chuỗi/state.
+state hash cuối: 0b837be96db72e1f18691d048ad593734a90169c56e518f13441334887b3d307
+state: {'Alice/msg': 'v5', 'Bob/msg': 'v5', 'Carol/msg': 'v5'}

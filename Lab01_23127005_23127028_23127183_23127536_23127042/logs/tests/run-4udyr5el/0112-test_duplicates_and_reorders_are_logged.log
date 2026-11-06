@@ -1,0 +1,8 @@
+# test=tests.unit.test_sim.NetTests.test_duplicates_and_reorders_are_logged
+network=1 t=0 node=V0 ev=SEND dst=V1 type=TEST height=0
+network=1 t=0 node=V0 ev=DUPLICATE dst=V1 type=TEST height=0 copies=2
+network=1 t=0 node=V0 ev=DELAY dst=V1 type=TEST height=0 delay=10 reason=reorder
+network=1 t=0 node=V0 ev=DELAY dst=V1 type=TEST height=0 delay=1 reason=reorder
+network=1 t=1 node=V1 ev=RECEIVE src=V0 type=TEST height=0
+network=1 t=10 node=V1 ev=RECEIVE src=V0 type=TEST height=0
+# outcome=passed

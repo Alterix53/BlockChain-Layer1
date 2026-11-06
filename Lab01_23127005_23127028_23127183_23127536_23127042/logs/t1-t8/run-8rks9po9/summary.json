@@ -1,0 +1,106 @@
+{
+  "tests_run": 20,
+  "successful": true,
+  "tests": [
+    {
+      "test": "tests.e2e.test_t1_normal.TestT1Normal.test_t1_normal_execution",
+      "status": "passed",
+      "log": "0001-test_t1_normal_execution.log"
+    },
+    {
+      "test": "tests.e2e.test_t2_duplicate_reorder.TestT2DuplicateReorder.test_t2_byzantine_replay_attack_node",
+      "status": "passed",
+      "log": "0002-test_t2_byzantine_replay_attack_node.log"
+    },
+    {
+      "test": "tests.e2e.test_t2_duplicate_reorder.TestT2DuplicateReorder.test_t2_network_duplicate_and_reorder_safety",
+      "status": "passed",
+      "log": "0003-test_t2_network_duplicate_and_reorder_safety.log"
+    },
+    {
+      "test": "tests.e2e.test_t2_duplicate_reorder.TestT2DuplicateReorder.test_t2_rule7_anti_double_voting_and_equivocation",
+      "status": "passed",
+      "log": "0004-test_t2_rule7_anti_double_voting_and_equivocation.log"
+    },
+    {
+      "test": "tests.e2e.test_t3_invalid_signatures.TestT3EndToEnd.test_rejected_and_logged_and_chain_continues",
+      "status": "passed",
+      "log": "0005-test_rejected_and_logged_and_chain_continues.log"
+    },
+    {
+      "test": "tests.e2e.test_t4_replay_tx.TestT4ReplayTx.test_t4_transaction_replay_prevention",
+      "status": "passed",
+      "log": "0006-test_t4_transaction_replay_prevention.log"
+    },
+    {
+      "test": "tests.e2e.test_t5_gst_safety.TestT5GstSafety.test_t5_extreme_pre_gst_partition_safety",
+      "status": "passed",
+      "log": "0007-test_t5_extreme_pre_gst_partition_safety.log"
+    },
+    {
+      "test": "tests.e2e.test_t5_gst_safety.TestT5GstSafety.test_t5_pre_gst_drops_and_delays_preserve_safety",
+      "status": "passed",
+      "log": "0008-test_t5_pre_gst_drops_and_delays_preserve_safety.log"
+    },
+    {
+      "test": "tests.e2e.test_t6_silent_proposer.TestT6SilentProposer.test_t6_single_silent_proposer_round_advancement",
+      "status": "passed",
+      "log": "0009-test_t6_single_silent_proposer_round_advancement.log"
+    },
+    {
+      "test": "tests.e2e.test_t6_silent_proposer.TestT6SilentProposer.test_t6_three_silent_validators_liveness_preserved",
+      "status": "passed",
+      "log": "0010-test_t6_three_silent_validators_liveness_preserved.log"
+    },
+    {
+      "test": "tests.e2e.test_t7_equivocation.TestT7Equivocation.test_t7_coalition_proposer_and_voters",
+      "status": "passed",
+      "log": "0011-test_t7_coalition_proposer_and_voters.log"
+    },
+    {
+      "test": "tests.e2e.test_t7_equivocation.TestT7Equivocation.test_t7_equivocating_proposer_broadcast",
+      "status": "passed",
+      "log": "0012-test_t7_equivocating_proposer_broadcast.log"
+    },
+    {
+      "test": "tests.e2e.test_t7_equivocation.TestT7Equivocation.test_t7_equivocating_proposer_partitioned",
+      "status": "passed",
+      "log": "0013-test_t7_equivocating_proposer_partitioned.log"
+    },
+    {
+      "test": "tests.e2e.test_t7_equivocation.TestT7Equivocation.test_t7_up_to_f_equivocating_voters",
+      "status": "passed",
+      "log": "0014-test_t7_up_to_f_equivocating_voters.log"
+    },
+    {
+      "test": "tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_byzantine_adversary_determinism",
+      "status": "passed",
+      "log": "0015-test_t8_byzantine_adversary_determinism.log"
+    },
+    {
+      "test": "tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_chaotic_pre_gst_network_determinism",
+      "status": "passed",
+      "log": "0016-test_t8_chaotic_pre_gst_network_determinism.log"
+    },
+    {
+      "test": "tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_checks_every_honest_node_not_just_node_zero",
+      "status": "passed",
+      "log": "0017-test_t8_checks_every_honest_node_not_just_node_zero.log"
+    },
+    {
+      "test": "tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_default_config_rerun_twice",
+      "status": "passed",
+      "log": "0018-test_t8_default_config_rerun_twice.log"
+    },
+    {
+      "test": "tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_multiple_arbitrary_seeds",
+      "status": "passed",
+      "log": "0019-test_t8_multiple_arbitrary_seeds.log"
+    },
+    {
+      "test": "tests.e2e.test_t8_determinism.TestT8Determinism.test_t8_rejects_identically_incomplete_runs",
+      "status": "passed",
+      "log": "0020-test_t8_rejects_identically_incomplete_runs.log"
+    }
+  ]
+}

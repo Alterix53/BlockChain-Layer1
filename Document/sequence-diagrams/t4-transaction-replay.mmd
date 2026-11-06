@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+participant T as TestT4ReplayTx
+    participant R as main.run_sim
+    participant N as AdmissionNet
+    participant V as V5 nhận lần đầu
+    participant H as Các node khác
+    participant E as execution
+    participant A as Oracle và assertion
+    T->>T: Tạo TX Alice nonce=1 và ký bằng identity_keys(cfg)
+    T->>T: mock.patch(src.main.Net, AdmissionNet)
+    T->>R: run_sim(cfg không có giao dịch ban đầu)
+    R->>N: run(t_end)
+    N->>N: Assert mọi mempool và seen_tx_hashes đều rỗng
+    N->>N: send(0,5,TX), gọi hai lần trước super().run()
+    Note over N,H: HEADER height 1 bị giữ tới t=20, height 3 tới t=100
+    N-->>V: on_message(TX) → on_tx(tx)
+    V->>V: Kiểm field, seen, chữ ký, namespace, nonce đã commit
+    V->>V: Thêm seen và mempool, log TX_RECEIVED
+    V->>N: broadcast(TX) gossip
+    N-->>V: Bản TX trùng
+    V->>V: Hash đã nằm trong seen → return
+    N-->>H: TX qua gossip
+    H->>H: Lần đầu hợp lệ → thêm mempool và TX_RECEIVED
+    H->>N: Gossip tiếp, bản trùng được bỏ qua
+    N-->>H: HEADER, REQUEST_BODY, BODY và các VOTE
+    H->>E: Kiểm và thực thi giao dịch trong block được đề xuất
+    E-->>H: Alice/msg mới, nonce Alice=1
+    H->>H: Đủ quorum → finalize, loại tx khỏi mempool
+    N->>N: Sau một lần _deliver, phát hiện tx đã có trong ledger bất kỳ
+    N->>N: replayed_after_commit=True
+    N->>N: broadcast(0, TX cũ) đúng một lần
+    N-->>V: TX phát lại sau khi đã có commit
+    V->>V: seen_tx_hashes nhận ra → không admission lần nữa
+    N-->>H: TX phát lại và giao dịch trùng khác
+    H->>H: Giữ cơ chế khử trùng lặp
+    Note over N,H: Tiếp tục mô phỏng tới khi chốt đủ 3 height
+    N-->>R: Kết thúc
+    R-->>T: net
+    T->>A: replayed_after_commit phải True
+    T->>A: Số TX_RECEIVED của Alice nonce=1 đúng bằng n
+    T->>A: assert_finalized 3 height, data mong đợi và nonce=1
+    T->>A: Mỗi ledger có tx đúng một lần, mọi mempool rỗng

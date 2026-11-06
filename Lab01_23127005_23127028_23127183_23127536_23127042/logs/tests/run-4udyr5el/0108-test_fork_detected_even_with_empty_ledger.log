@@ -1,0 +1,2 @@
+# test=tests.unit.test_safety_helpers.TestSafetyChecker.test_fork_detected_even_with_empty_ledger
+# outcome=passed

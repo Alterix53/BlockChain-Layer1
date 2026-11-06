@@ -1,0 +1,236 @@
+# test=tests.regression.test_cli.BoundaryAndCLIContracts.test_incomplete_cli_fails_instead_of_reporting_deterministic_success
+# CLI returncode=1
+# CLI file=run.log
+t=0 node=V0 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V0 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V0 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V0 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V0 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V0 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V0 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V0 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V0 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V0 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V0 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V0 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V0 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V0 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V0 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V1 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V1 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V1 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V1 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V1 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V1 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V1 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V1 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V1 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V1 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V1 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V1 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V1 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V1 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V1 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V2 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V2 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V2 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V2 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V2 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V2 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V2 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V2 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V2 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V2 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V2 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V2 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V2 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V2 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V2 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V3 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V3 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V3 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V3 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V3 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V3 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V3 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V3 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V3 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V3 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V3 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V3 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V3 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V3 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V3 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V4 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V4 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V4 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V4 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V4 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V4 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V4 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V4 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V4 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V4 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V4 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V4 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V4 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V4 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V4 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V5 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V5 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V5 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V5 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V5 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V5 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V5 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V5 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V5 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V5 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V5 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V5 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V5 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V5 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V5 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V6 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V6 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V6 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V6 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V6 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V6 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V6 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V6 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V6 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V6 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V6 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V6 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V6 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V6 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V6 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V7 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V7 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V7 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V7 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V7 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V7 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V7 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V7 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V7 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V7 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V7 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V7 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V7 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V7 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V7 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V8 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V8 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V8 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V8 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V8 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V8 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V8 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V8 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V8 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V8 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V8 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V8 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V8 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V8 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V8 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V9 ev=TX_RECEIVED sender=Alice nonce=1
+t=0 node=V9 ev=TX_RECEIVED sender=Alice nonce=2
+t=0 node=V9 ev=TX_RECEIVED sender=Alice nonce=3
+t=0 node=V9 ev=TX_RECEIVED sender=Alice nonce=4
+t=0 node=V9 ev=TX_RECEIVED sender=Alice nonce=5
+t=0 node=V9 ev=TX_RECEIVED sender=Bob nonce=1
+t=0 node=V9 ev=TX_RECEIVED sender=Bob nonce=2
+t=0 node=V9 ev=TX_RECEIVED sender=Bob nonce=3
+t=0 node=V9 ev=TX_RECEIVED sender=Bob nonce=4
+t=0 node=V9 ev=TX_RECEIVED sender=Bob nonce=5
+t=0 node=V9 ev=TX_RECEIVED sender=Carol nonce=1
+t=0 node=V9 ev=TX_RECEIVED sender=Carol nonce=2
+t=0 node=V9 ev=TX_RECEIVED sender=Carol nonce=3
+t=0 node=V9 ev=TX_RECEIVED sender=Carol nonce=4
+t=0 node=V9 ev=TX_RECEIVED sender=Carol nonce=5
+t=0 node=V0 ev=ROUND_START height=1 round=0
+t=0 node=V1 ev=ROUND_START height=1 round=0
+t=0 node=V1 ev=PROPOSE height=1 round=0 pol_round=-1 txs=10
+t=0 node=V1 ev=SEND dst=V0 type=HEADER height=1
+t=0 node=V1 ev=SEND dst=V2 type=HEADER height=1
+t=0 node=V1 ev=SEND dst=V3 type=HEADER height=1
+t=0 node=V1 ev=SEND dst=V4 type=HEADER height=1
+t=0 node=V1 ev=SEND dst=V5 type=HEADER height=1
+t=0 node=V1 ev=SEND dst=V6 type=HEADER height=1
+t=0 node=V1 ev=SEND dst=V7 type=HEADER height=1
+t=0 node=V1 ev=SEND dst=V8 type=HEADER height=1
+t=0 node=V1 ev=DELAY dst=V8 type=HEADER height=1 delay=1 reason=network
+t=0 node=V1 ev=SEND dst=V9 type=HEADER height=1
+t=0 node=V1 ev=DELAY dst=V9 type=HEADER height=1 delay=1 reason=network
+t=0 node=V1 ev=LOCAL_DELIVERY type=HEADER height=1
+t=0 node=V1 ev=VOTE kind=PREVOTE height=1 round=0 block=cb9f79aa
+t=0 node=V1 ev=SEND dst=V0 type=VOTE height=1
+t=0 node=V1 ev=SEND dst=V2 type=VOTE height=1
+t=0 node=V1 ev=SEND dst=V3 type=VOTE height=1
+t=0 node=V1 ev=DELAY dst=V3 type=VOTE height=1 delay=1 reason=network
+t=0 node=V1 ev=SEND dst=V4 type=VOTE height=1
+t=0 node=V1 ev=SEND dst=V5 type=VOTE height=1
+t=0 node=V1 ev=DELAY dst=V5 type=VOTE height=1 delay=1 reason=network
+t=0 node=V1 ev=SEND dst=V6 type=VOTE height=1
+t=0 node=V1 ev=DELAY dst=V6 type=VOTE height=1 delay=1 reason=network
+t=0 node=V1 ev=SEND dst=V7 type=VOTE height=1
+t=0 node=V1 ev=DELAY dst=V7 type=VOTE height=1 delay=1 reason=network
+t=0 node=V1 ev=SEND dst=V8 type=VOTE height=1
+t=0 node=V1 ev=SEND dst=V9 type=VOTE height=1
+t=0 node=V1 ev=LOCAL_DELIVERY type=VOTE height=1
+t=0 node=V2 ev=ROUND_START height=1 round=0
+t=0 node=V3 ev=ROUND_START height=1 round=0
+t=0 node=V4 ev=ROUND_START height=1 round=0
+t=0 node=V5 ev=ROUND_START height=1 round=0
+t=0 node=V6 ev=ROUND_START height=1 round=0
+t=0 node=V7 ev=ROUND_START height=1 round=0
+t=0 node=V8 ev=ROUND_START height=1 round=0
+t=0 node=V9 ev=ROUND_START height=1 round=0
+t=0 node=V0 ev=RECEIVE src=V1 type=HEADER height=1
+t=0 node=V0 ev=REQUEST_BODY height=1 block=cb9f79aa peer=V1
+t=0 node=V0 ev=SEND dst=V1 type=REQUEST_BODY height=1
+t=0 node=V0 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=1 reason=network
+t=0 node=V2 ev=RECEIVE src=V1 type=HEADER height=1
+t=0 node=V2 ev=REQUEST_BODY height=1 block=cb9f79aa peer=V1
+t=0 node=V2 ev=SEND dst=V1 type=REQUEST_BODY height=1
+t=0 node=V2 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=1 reason=network
+t=0 node=V3 ev=RECEIVE src=V1 type=HEADER height=1
+t=0 node=V3 ev=REQUEST_BODY height=1 block=cb9f79aa peer=V1
+t=0 node=V3 ev=SEND dst=V1 type=REQUEST_BODY height=1
+t=0 node=V3 ev=DELAY dst=V1 type=REQUEST_BODY height=1 delay=1 reason=network
+t=0 node=V4 ev=RECEIVE src=V1 type=HEADER height=1
+t=0 node=V4 ev=REQUEST_BODY height=1 block=cb9f79aa peer=V1
+t=0 node=V4 ev=SEND dst=V1 type=REQUEST_BODY height=1
+t=0 node=V5 ev=RECEIVE src=V1 type=HEADER height=1
+t=0 node=V5 ev=REQUEST_BODY height=1 block=cb9f79aa peer=V1
+t=0 node=V5 ev=SEND dst=V1 type=REQUEST_BODY height=1
+t=0 node=V6 ev=RECEIVE src=V1 type=HEADER height=1
+t=0 node=V6 ev=REQUEST_BODY height=1 block=cb9f79aa peer=V1
+t=0 node=V6 ev=SEND dst=V1 type=REQUEST_BODY height=1
+t=0 node=V7 ev=RECEIVE src=V1 type=HEADER height=1
+t=0 node=V7 ev=REQUEST_BODY height=1 block=cb9f79aa peer=V1
+t=0 node=V7 ev=SEND dst=V1 type=REQUEST_BODY height=1
+t=0 node=V0 ev=RECEIVE src=V1 type=VOTE height=1
+t=0 node=V2 ev=RECEIVE src=V1 type=VOTE height=1
+t=0 node=V4 ev=RECEIVE src=V1 type=VOTE height=1
+t=0 node=V8 ev=RECEIVE src=V1 type=VOTE height=1
+t=0 node=V9 ev=RECEIVE src=V1 type=VOTE height=1
+t=0 node=V1 ev=RECEIVE src=V4 type=REQUEST_BODY height=1
+t=0 node=V1 ev=SEND dst=V4 type=BODY height=1
+t=0 node=V1 ev=DELAY dst=V4 type=BODY height=1 delay=1 reason=network
+t=0 node=V1 ev=RECEIVE src=V5 type=REQUEST_BODY height=1
+t=0 node=V1 ev=SEND dst=V5 type=BODY height=1
+t=0 node=V1 ev=DELAY dst=V5 type=BODY height=1 delay=1 reason=network
+t=0 node=V1 ev=RECEIVE src=V6 type=REQUEST_BODY height=1
+t=0 node=V1 ev=SEND dst=V6 type=BODY height=1
+t=0 node=V1 ev=DELAY dst=V6 type=BODY height=1 delay=1 reason=network
+t=0 node=V1 ev=RECEIVE src=V7 type=REQUEST_BODY height=1
+t=0 node=V1 ev=SEND dst=V7 type=BODY height=1
+t=0 node=V1 ev=DELAY dst=V7 type=BODY height=1 delay=1 reason=network
+# CLI stderr
+INCOMPLETE: chưa chốt đủ 2 block: {'V0': 0, 'V1': 0, 'V2': 0, 'V3': 0, 'V4': 0, 'V5': 0, 'V6': 0, 'V7': 0, 'V8': 0, 'V9': 0}
+
+# outcome=passed

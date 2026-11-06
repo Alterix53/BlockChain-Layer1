@@ -178,16 +178,16 @@ Tất định (2 lần chạy giống hệt): True
 
 ### 5.2. Chạy bộ kiểm thử tự động của Tầng mạng (T2, T5, Rate Limit, Peer Block)
 ```bash
-python -m pytest tests/test_sim.py -v
+python -m pytest tests/unit/test_sim.py tests/e2e/test_consensus_network.py -v
 ```
 **Kết quả kỳ vọng**:
 ```text
-tests/test_sim.py::NetTests::test_drops_messages_before_gst_when_configured PASSED
-tests/test_sim.py::NetTests::test_duplicates_and_reorders_are_logged PASSED
-tests/test_sim.py::NetTests::test_peer_is_blocked_then_unblocked PASSED
-tests/test_sim.py::NetTests::test_rate_limit_delays_excess_sends PASSED
-tests/test_sim.py::ConsensusNetworkTests::test_t2_duplicate_reordered_votes_count_once_and_keep_safety PASSED
-tests/test_sim.py::ConsensusNetworkTests::test_t5_pre_gst_drops_and_delays_preserve_finalization_safety PASSED
+tests/unit/test_sim.py::NetTests::test_drops_messages_before_gst_when_configured PASSED
+tests/unit/test_sim.py::NetTests::test_duplicates_and_reorders_are_logged PASSED
+tests/unit/test_sim.py::NetTests::test_peer_is_blocked_then_unblocked PASSED
+tests/unit/test_sim.py::NetTests::test_rate_limit_delays_excess_sends PASSED
+tests/e2e/test_consensus_network.py::ConsensusNetworkTests::test_t2_duplicate_reordered_votes_count_once_and_keep_safety PASSED
+tests/e2e/test_consensus_network.py::ConsensusNetworkTests::test_t5_pre_gst_drops_and_delays_preserve_finalization_safety PASSED
 ```
 
 ### 5.3. Chạy bộ kiểm thử Đơn vị cho Tầng Thực thi & Nonce Replay (T4)

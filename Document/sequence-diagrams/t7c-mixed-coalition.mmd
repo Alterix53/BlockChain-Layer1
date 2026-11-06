@@ -1,0 +1,36 @@
+sequenceDiagram
+    autonumber
+participant T as TestT7Equivocation
+    participant F as run_with_byzantine
+    participant P as V1 EquivocateProposer
+    participant B as V4,V7 EquivocateVoter
+    participant N as Net
+    participant L as Honest [0,2,3]
+    participant H as Honest [5,6,8]
+    participant A as Assertion và oracle
+    T->>F: Cấu hình 1 proposer và 2 voter Byzantine
+    F->>F: run_sim, factory khởi tạo đúng lớp
+    N-->>P: Lượt proposer (height=1,round=0)
+    P->>P: Tạo block A rỗng và block B chứa một tx
+    P->>N: Gửi HEADER A cho nhóm trái
+    P->>N: Gửi HEADER B cho nhóm phải
+    N-->>L: Nhận và tải BODY A
+    N-->>H: Nhận và tải BODY B
+    L->>N: PREVOTE theo kiểm định và lock của mình
+    H->>N: PREVOTE theo kiểm định và lock của mình
+    opt V4 hoặc V7 gọi cast tại slot tấn công với target khác NIL
+        B->>N: Hai phiếu cùng slot cho target và NIL
+        N-->>L: Nhận các phiếu, chỉ giữ một phiếu mỗi voter
+        N-->>H: Nhận các phiếu, chỉ giữ một phiếu mỗi voter
+    end
+    Note over L,H: Các nhóm vẫn liên lạc qua Net, không bị network partition
+    loop Các sự kiện, timeout và round tiếp theo
+        N-->>L: Phiếu, proposal, bằng chứng hoặc timeout
+        N-->>H: Phiếu, proposal, bằng chứng hoặc timeout
+        L->>L: Kiểm lock/POLKA và quorum trước khi ký/chốt
+        H->>H: Kiểm lock/POLKA và quorum trước khi ký/chốt
+    end
+    F-->>T: net
+    T->>A: Safety trên 7 honest
+    T->>A: Progress đủ 5 height và certificates hợp lệ
+    Note over T,A: Test method không có assertion BYZ_* hoặc EQUIVOCATION riêng

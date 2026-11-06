@@ -1,0 +1,38 @@
+sequenceDiagram
+    autonumber
+participant T as TestT2DuplicateReorder
+    participant R as main.run_sim
+    participant N as Net
+    participant S as Node gửi
+    participant H as Node nhận
+    participant A as Assertion và oracle
+    T->>R: run_sim(cfg đã đặt duplicate và reorder)
+    R->>N: Khởi tạo mạng và node, run(t_end)
+    loop Mỗi thông điệp, lịch cụ thể do seed quyết định
+        S->>N: send hoặc broadcast(msg)
+        opt Trúng nhánh duplicate_probability
+            N->>N: Ghi DUPLICATE, lên lịch bản sao
+        end
+        opt Trước GST và trúng nhánh reorder
+            N->>N: Tăng trễ, ghi DELAY reason=reorder
+        end
+        N-->>H: Giao thông điệp theo hàng đợi (t, seq)
+        alt VOTE mới hợp lệ
+            H->>H: on_vote(), lưu slot[voter]
+        else VOTE cùng voter, cùng slot đã có
+            H->>H: Giữ phiếu đầu, không đếm thêm
+        else HEADER hoặc BODY
+            H->>H: Xử lý proposal và bộ đệm theo handler
+        end
+        H->>H: run(), áp dụng khóa và quorum
+        opt Đủ Q PRECOMMIT cho khối đã kiểm
+            H->>H: finalize(B, cert)
+        end
+    end
+    N-->>R: Kết thúc mô phỏng
+    R-->>T: net
+    T->>A: Có DUPLICATE và DELAY reason=reorder
+    T->>A: assert_honest_safety và assert_honest_certificates
+    A->>A: Oracle kiểm ledger, chữ ký, thực thi và state
+    T->>A: Ledger của mỗi node bằng ledger node đầu
+    Note over T,A: Không suy ra completion chỉ từ safety hoặc ledger bằng nhau

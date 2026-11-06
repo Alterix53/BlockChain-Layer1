@@ -1,0 +1,36 @@
+sequenceDiagram
+    autonumber
+participant T as TestT2DuplicateReorder
+    participant F as run_with_byzantine
+    participant R as main.run_sim
+    participant N as Net
+    participant B as V2 Replay
+    participant H as Honest Node
+    participant A as Assertion và oracle
+    T->>F: behaviors V2=Replay, delay=20, limit=10
+    F->>F: Đổi lớp hành vi thành config byzantine JSON
+    F->>R: run_sim(load_cfg(byzantine, seed=42))
+    R->>B: make_node(replay) → configure()
+    R->>N: run(t_end)
+    N-->>B: on_message(msg, src)
+    opt Loại tin phù hợp, đúng attack_height, chưa ghi, chưa đủ limit
+        B->>B: recorded.append(msg)
+        B->>N: set_timeout(20, BYZ_REPLAY, index)
+    end
+    B->>B: super().on_message(msg, src)
+    N-->>B: on_timeout(BYZ_REPLAY, index)
+    B->>B: evidence.append(msg), log BYZ_REPLAY
+    B->>N: broadcast nguyên msg đã ghi
+    N-->>H: on_message(msg)
+    alt Vote cùng slot và voter đã tồn tại
+        H->>H: Không đếm thêm, phát hiện mâu thuẫn nếu có
+    else Thông điệp ngoài cửa sổ hoặc trùng dữ liệu
+        H->>H: Áp dụng kiểm tra cửa sổ hoặc bộ đệm tương ứng
+    else Thông điệp còn hợp lệ
+        H->>H: Xử lý theo handler và run()
+    end
+    N-->>R: Kết thúc mô phỏng
+    R-->>F: net
+    F-->>T: net
+    T->>A: BYZ_REPLAY có ít nhất một sự kiện
+    T->>A: Safety và certificates, loại V2 khỏi nhóm kiểm tra

@@ -1,0 +1,36 @@
+sequenceDiagram
+    autonumber
+participant T as TestT7Equivocation
+    participant F as run_with_byzantine
+    participant B as V3,V5,V7 EquivocateVoter
+    participant N as Net
+    participant H as Honest receiver
+    participant A as Assertion và oracle
+    T->>F: behaviors V3,V5,V7, seed=42
+    F->>F: run_sim và make_node qua config
+    N-->>B: Xử lý proposal và phiếu hợp lệ
+    B->>B: run() gọi cast(kind,target)
+    alt Đúng attack slot, phase, chưa ký và target khác NIL
+        B->>B: Tạo hai Vote cùng slot cho target và NIL
+        B->>B: signed[key]=target, lưu evidence
+        B->>N: Log BYZ_EQUIVOCATE_VOTE
+        B->>N: Broadcast vote_target
+        B->>N: Broadcast vote_NIL
+        N-->>H: Phiếu đến đầu tiên
+        H->>H: on_vote(), verify rồi lưu slot[voter]
+        N-->>H: Phiếu còn lại cùng voter và slot, khác hash
+        H->>N: Log EQUIVOCATION voter tương ứng
+        H->>H: Giữ phiếu đầu, không tăng số voter
+    else Không đủ điều kiện tạo hai phiếu khác nhau
+        B->>B: super().cast(kind,target)
+    end
+    loop Các round và height tiếp theo
+        N-->>H: Giao thông điệp và timeout
+        H->>H: Chỉ ký một phiếu mỗi slot, áp dụng lock/POLKA
+        H->>H: Đủ Q PRECOMMIT hợp lệ → finalize()
+    end
+    F-->>T: net
+    T->>A: Mỗi V3,V5,V7 có BYZ_EQUIVOCATE_VOTE
+    T->>A: Mỗi voter này có ít nhất một EQUIVOCATION
+    T->>A: Safety, progress(5), certificates trên honest
+    Note over H,A: n=10, Q=7 → hai quorum giao ít nhất 4 người, hơn f=3

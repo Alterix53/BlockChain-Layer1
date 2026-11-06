@@ -1,0 +1,2 @@
+# test=tests.unit.test_event_logging.TestEventLogging.test_class_setup_error_is_recorded_without_hiding_original_error
+# outcome=passed

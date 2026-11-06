@@ -1,0 +1,2 @@
+# test=tests.unit.test_safety_helpers.TestSafetyChecker.test_byzantine_ledger_ignored
+# outcome=passed

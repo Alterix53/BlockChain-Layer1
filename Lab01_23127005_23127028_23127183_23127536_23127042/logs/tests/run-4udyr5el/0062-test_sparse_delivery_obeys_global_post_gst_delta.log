@@ -1,0 +1,13 @@
+# test=tests.regression.test_network.NetworkContracts.test_sparse_delivery_obeys_global_post_gst_delta
+network=1 t=0 node=V0 ev=SEND dst=V1 type=TEST height=0
+network=1 t=0 node=V1 ev=RECEIVE src=V0 type=TEST height=0
+network=1 t=0 node=V1 ev=SEND dst=V2 type=TEST height=0
+network=1 t=0 node=V2 ev=RECEIVE src=V1 type=TEST height=0
+network=1 t=0 node=V2 ev=SEND dst=V3 type=TEST height=0
+network=1 t=0 node=V3 ev=RECEIVE src=V2 type=TEST height=0
+network=1 t=0 node=V3 ev=SEND dst=V4 type=TEST height=0
+network=1 t=0 node=V4 ev=RECEIVE src=V3 type=TEST height=0
+network=1 t=0 node=V4 ev=SEND dst=V5 type=TEST height=0
+network=1 t=0 node=V4 ev=DELAY dst=V5 type=TEST height=0 delay=1 reason=network
+network=1 t=1 node=V5 ev=RECEIVE src=V4 type=TEST height=0
+# outcome=passed

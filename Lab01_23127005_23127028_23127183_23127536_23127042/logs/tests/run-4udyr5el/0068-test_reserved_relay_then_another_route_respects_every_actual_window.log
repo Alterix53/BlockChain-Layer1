@@ -1,0 +1,15 @@
+# test=tests.regression.test_review_fixes.AuditRegressions.test_reserved_relay_then_another_route_respects_every_actual_window
+network=1 t=0 node=V0 ev=SEND dst=V1 type=ROUTED height=0
+network=1 t=0 node=V0 ev=DELAY dst=V1 type=ROUTED height=0 delay=2 reason=network
+network=1 t=0 node=V2 ev=DELAY dst=V0 type=SECOND height=0 reason=route_admission until=11
+network=1 t=2 node=V1 ev=RECEIVE src=V0 type=ROUTED height=0
+network=1 t=2 node=V1 ev=SEND dst=V2 type=ROUTED height=0
+network=1 t=2 node=V1 ev=DELAY dst=V2 type=ROUTED height=0 delay=9 reason=network
+network=1 t=11 node=V2 ev=SEND dst=V1 type=SECOND height=0
+network=1 t=11 node=V2 ev=DELAY dst=V1 type=SECOND height=0 delay=1 reason=network
+network=1 t=11 node=V2 ev=RECEIVE src=V1 type=ROUTED height=0
+network=1 t=12 node=V1 ev=RECEIVE src=V2 type=SECOND height=0
+network=1 t=12 node=V1 ev=SEND dst=V0 type=SECOND height=0
+network=1 t=12 node=V1 ev=DELAY dst=V0 type=SECOND height=0 delay=4 reason=network
+network=1 t=16 node=V0 ev=RECEIVE src=V1 type=SECOND height=0
+# outcome=passed

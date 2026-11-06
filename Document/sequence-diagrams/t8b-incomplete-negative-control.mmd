@@ -1,0 +1,20 @@
+sequenceDiagram
+    autonumber
+participant T as TestT8Determinism
+    participant R as main.run_sim
+    participant N as Hai mạng độc lập
+    participant V as _assert_complete_deterministic_runs
+    T->>T: load_cfg(t_end=0, heights=1, một giao dịch Alice)
+    T->>R: run_sim(cfg) lần 1
+    R->>N: Chỉ xử lý sự kiện trong t_end=0
+    R-->>T: first chưa hoàn tất
+    T->>R: run_sim(cfg) lần 2
+    R->>N: Cùng cấu hình và giới hạn thời gian
+    R-->>T: second chưa hoàn tất
+    T->>T: Assert first.logs == second.logs
+    T->>T: Bắt đầu assertRaisesRegex(AssertionError, did not finish)
+    T->>V: Kiểm hai kết quả
+    V->>V: Bytes log bằng nhau
+    V->>V: Kiểm từng honest node.done
+    V-->>T: AssertionError did not finish
+    T->>T: PASS vì helper đã từ chối hai lần incomplete giống nhau

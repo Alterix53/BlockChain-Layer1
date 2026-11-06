@@ -1,0 +1,40 @@
+sequenceDiagram
+    autonumber
+participant T as TestT8Determinism
+    participant F as load_cfg hoặc run_with_byzantine
+    participant R as main.run_sim
+    participant N1 as Net lần 1
+    participant N2 as Net lần 2
+    participant V as _assert_complete_deterministic_runs
+    participant O as independent_oracle
+    T->>F: Chuẩn bị cùng cfg, seed và danh tính
+    F-->>T: Cấu hình ca thường, nhiều seed, nhiễu hoặc Byzantine
+    T->>R: Lần 1, run_sim(cfg) hoặc helper Byzantine
+    R->>N1: Tạo mới PRNG, hàng đợi, node, state
+    N1->>N1: run(t_end), lưu logs và kết quả
+    R-->>T: net1
+    T->>R: Lần 2, cùng đầu vào
+    R->>N2: Tạo lại PRNG và node độc lập
+    N2->>N2: run(t_end), lưu logs và kết quả
+    R-->>T: net2
+    T->>V: net1, net2, cfg, tên Byzantine bị loại trừ
+    V->>O: digest của expected_data và expected_nonces
+    O-->>V: expected_hash độc lập
+    V->>V: Ghép log bằng newline, mã hóa UTF-8
+    V->>V: Assert bytes log lần 1 bằng lần 2
+    loop Mỗi lần chạy
+        V->>V: Assert đúng tập tên honest
+        loop Từng honest node, kể cả V9
+            V->>V: Assert done và ledger dài đúng heights
+            V->>V: Assert data, nonce và state hash bằng expected
+        end
+        V->>O: assert_finalized(nodes, heights, expected_data, expected_nonces)
+        O->>O: Tự kiểm parent, tx, chữ ký, state và certificate
+        O-->>V: Không có assertion lỗi
+    end
+    V->>V: So sánh ledger mọi honest với cùng reference chain
+    V->>V: So sánh state hash giữa hai lần chạy theo tên node
+    V-->>T: Helper thành công
+    opt Ca mặc định seed 42
+        T->>T: Assert prefix hash chuẩn và ledger từng node hai lần bằng nhau
+    end

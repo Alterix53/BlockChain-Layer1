@@ -1,0 +1,52 @@
+sequenceDiagram
+    autonumber
+participant T as TestT6SilentProposer
+    participant F as run_with_byzantine
+    participant N as Net
+    participant B as V1 Silent
+    participant H as Honest validators
+    participant P as V2 proposer round 1
+    participant A as Assertion và oracle
+    alt Một node im lặng
+        T->>F: behaviors V1=Silent(all), seed=42
+    else Ba node im lặng
+        T->>F: behaviors V1,V4,V7=Silent(all), seed=10
+    end
+    F->>F: Chuyển behaviors sang JSON, gọi run_sim
+    F->>N: Khởi tạo qua production factory và run(t_end)
+    N-->>B: start()
+    B->>N: Log BYZ_SILENT, không phát proposal hay vote
+    N-->>H: start_height(1), start_round(0)
+    H->>N: Lên lịch PROPOSE và ROUND timeout
+    N-->>H: on_timeout(PROPOSE,1,0)
+    H->>N: Log TIMEOUT kind=PROPOSE
+    H->>H: Nếu còn PROPOSE thì cast(PREVOTE,NIL)
+    H->>N: Broadcast PREVOTE NIL
+    N-->>H: Nhận Q PREVOTE NIL
+    H->>H: run() → cast(PRECOMMIT,NIL)
+    H->>N: Broadcast PRECOMMIT NIL, lên lịch timeout
+    alt PRECOMMIT timeout tới hạn
+        N-->>H: on_timeout(PRECOMMIT,1,0)
+        H->>H: start_round(1)
+    else ROUND timeout tới trước
+        N-->>H: on_timeout(ROUND,1,0)
+        H->>N: request_sync()
+        H->>H: start_round(1)
+    end
+    Note over H,P: Node cũng có thể theo kịp round qua maybe_skip_round
+    P->>P: Proposer(1,1)=V2, propose()
+    P->>N: HEADER
+    N-->>H: HEADER, trao đổi REQUEST_BODY/BODY
+    H->>N: PREVOTE cho block hợp lệ
+    N-->>H: Q PREVOTE → LOCK
+    H->>N: PRECOMMIT
+    N-->>H: Q PRECOMMIT
+    H->>H: finalize(), tiếp tục các height
+    Note over N,H: Ca ba Silent còn đúng 7 honest, đủ Q nếu chúng phối hợp tiến triển
+    N-->>F: Kết thúc, trả net
+    F-->>T: net
+    opt Ca một Silent
+        T->>A: Mỗi honest có TIMEOUT PROPOSE tại (1,0)
+        T->>A: Block đầu height=1, round=1, proposer=V2
+    end
+    T->>A: Safety, progress đủ 5, certificates trên honest

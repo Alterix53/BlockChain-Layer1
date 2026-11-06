@@ -1,0 +1,5 @@
+# Preserve the exact bytes of test evidence on Windows and other platforms.
+*.log -text
+*-console.txt -text
+*.pdf binary
+*.png binary

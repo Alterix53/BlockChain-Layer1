@@ -1,0 +1,9 @@
+# test=tests.unit.test_sim.NetTests.test_peer_is_blocked_then_unblocked
+network=1 t=0 node=V0 ev=SEND dst=V1 type=FIRST height=0
+network=1 t=0 node=V1 ev=BLOCK src=V0 until=100 reason=admission_backpressure type=SECOND height=0
+network=1 t=0 node=V0 ev=DELAY dst=V1 type=SECOND height=0 reason=rate_limit until=100
+network=1 t=0 node=V1 ev=RECEIVE src=V0 type=FIRST height=0
+network=1 t=100 node=V1 ev=UNBLOCK src=V0 type=SECOND height=0
+network=1 t=100 node=V0 ev=SEND dst=V1 type=SECOND height=0
+network=1 t=100 node=V1 ev=RECEIVE src=V0 type=SECOND height=0
+# outcome=passed

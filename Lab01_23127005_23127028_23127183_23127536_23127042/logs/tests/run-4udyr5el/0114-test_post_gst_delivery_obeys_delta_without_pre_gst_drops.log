@@ -1,0 +1,5 @@
+# test=tests.unit.test_sim.NetTests.test_post_gst_delivery_obeys_delta_without_pre_gst_drops
+network=1 t=0 node=V0 ev=SEND dst=V1 type=TEST height=0
+network=1 t=0 node=V0 ev=DELAY dst=V1 type=TEST height=0 delay=1 reason=network
+network=1 t=1 node=V1 ev=RECEIVE src=V0 type=TEST height=0
+# outcome=passed

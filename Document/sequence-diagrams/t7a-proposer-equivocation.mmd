@@ -1,0 +1,50 @@
+sequenceDiagram
+    autonumber
+participant T as TestT7Equivocation
+    participant F as run_with_byzantine
+    participant B as V1 EquivocateProposer
+    participant N as Net
+    participant L as Honest nhóm trái
+    participant H as Honest nhóm phải
+    participant A as Assertion và oracle
+    T->>F: V1 EquivocateProposer, chọn groups hoặc broadcast
+    F->>F: run_sim qua config và factory thật
+    N-->>B: START → propose() tại height 1, round 0
+    B->>B: first_valid_tx(), build_block rỗng A và một tx B
+    B->>B: evidence thêm A/B, log BYZ_EQUIVOCATE_PROPOSAL
+    alt Không cấu hình groups
+        B->>N: send_proposal(A) → broadcast HEADER A
+        B->>N: send_proposal(B) → broadcast HEADER B
+        N-->>L: HEADER A và B theo lịch mạng
+        N-->>H: HEADER A và B theo lịch mạng
+    else Cấu hình groups
+        B->>N: HEADER A chỉ tới [0,2,4,6]
+        B->>N: HEADER B chỉ tới [3,5,7,8]
+        N-->>L: HEADER A
+        N-->>H: HEADER B
+    end
+    L->>N: REQUEST_BODY A
+    H->>N: REQUEST_BODY B
+    N-->>B: Yêu cầu body theo từng hash
+    B->>N: BODY tương ứng từ self.bodies
+    N-->>L: on_body → on_proposal
+    N-->>H: on_body → on_proposal
+    L->>L: Kiểm block, keep_first và lưu blocks
+    H->>H: Kiểm block, keep_first và lưu blocks
+    opt Node nhận đủ hai proposal cùng slot
+        L->>N: Log EQUIVOCATION proposer=V1, giữ proposal đầu
+        L->>L: Có thể giữ cả hai block body trong blocks
+    end
+    L->>N: PREVOTE theo proposal và lock cục bộ
+    H->>N: PREVOTE theo proposal và lock cục bộ
+    N-->>L: Các phiếu và bằng chứng được giao theo lịch
+    N-->>H: Các phiếu và bằng chứng được giao theo lịch
+    Note over L,H: Tiến triển qua quorum hoặc timeout/round mới, giữ lock và kiểm POLKA
+    L->>L: Chỉ finalize block hợp lệ với Q PRECOMMIT
+    H->>H: Chỉ finalize block hợp lệ với Q PRECOMMIT
+    F-->>T: net sau khi mô phỏng kết thúc
+    T->>A: BYZ_EQUIVOCATE_PROPOSAL của V1 xuất hiện
+    opt Ca broadcast
+        T->>A: Có EQUIVOCATION proposer=V1
+    end
+    T->>A: Safety, progress(5), certificates, loại V1

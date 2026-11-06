@@ -1,0 +1,4 @@
+# test=tests.unit.test_sim.NetTests.test_reads_topology_and_per_link_delay
+network=1 t=0 node=V0 ev=SEND dst=V1 type=TEST height=0
+network=1 t=0 node=V1 ev=RECEIVE src=V0 type=TEST height=0
+# outcome=passed

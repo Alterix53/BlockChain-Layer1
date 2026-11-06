@@ -1,0 +1,171 @@
+test_network_equivocating_proposer (e2e.test_byzantine_scenarios.TestEquivocateProposer.test_network_equivocating_proposer)
+Mạng thật: không fork, có honest phát hiện, KHÔNG node honest nào kẹt. Trước khi sửa ... ok
+test_network_f_equivocating_voters (e2e.test_byzantine_scenarios.TestEquivocateVoter.test_network_f_equivocating_voters) ... ok
+test_network_every_honest_rejects_and_chain_continues (e2e.test_byzantine_scenarios.TestInvalidBlock.test_network_every_honest_rejects_and_chain_continues) ... ok
+test_network_fake_pol_round (e2e.test_byzantine_scenarios.TestInvalidBlock.test_network_fake_pol_round) ... ok
+test_network_replay_same_height_and_old_height (e2e.test_byzantine_scenarios.TestReplay.test_network_replay_same_height_and_old_height) ... ok
+test_network_silent_proposer_round_timeout_chain_continues (e2e.test_byzantine_scenarios.TestSilent.test_network_silent_proposer_round_timeout_chain_continues) ... ok
+test_network_three_silent (e2e.test_byzantine_scenarios.TestSilent.test_network_three_silent) ... ok
+test_t2_duplicate_reordered_votes_count_once_and_keep_safety (e2e.test_consensus_network.ConsensusNetworkTests.test_t2_duplicate_reordered_votes_count_once_and_keep_safety) ... ok
+test_t5_pre_gst_drops_and_delays_preserve_finalization_safety (e2e.test_consensus_network.ConsensusNetworkTests.test_t5_pre_gst_drops_and_delays_preserve_finalization_safety) ... ok
+test_experiment_is_deterministic (e2e.test_quorum_boundary.TestQuorumBoundary.test_experiment_is_deterministic) ... ok
+test_n10_q7_random_pre_gst_is_safe (e2e.test_quorum_boundary.TestQuorumBoundary.test_n10_q7_random_pre_gst_is_safe) ... ok
+test_n10_q7_same_attack_is_safe (e2e.test_quorum_boundary.TestQuorumBoundary.test_n10_q7_same_attack_is_safe) ... ok
+test_n9_q6_breaks_safety (e2e.test_quorum_boundary.TestQuorumBoundary.test_n9_q6_breaks_safety) ... ok
+test_n9_q6_fork_needs_timely_delivery (e2e.test_quorum_boundary.TestQuorumBoundary.test_n9_q6_fork_needs_timely_delivery) ... ok
+test_n9_q7_safe_but_no_liveness (e2e.test_quorum_boundary.TestQuorumBoundary.test_n9_q7_safe_but_no_liveness) ... ok
+test_isolated_node_catches_up (e2e.test_sync_catchup.TestSyncCatchUpNetwork.test_isolated_node_catches_up) ... ok
+test_normal_run_never_asks (e2e.test_sync_catchup.TestSyncCatchUpNetwork.test_normal_run_never_asks) ... ok
+test_t1_normal_execution (e2e.test_t1_normal.TestT1Normal.test_t1_normal_execution) ... ok
+test_t2_byzantine_replay_attack_node (e2e.test_t2_duplicate_reorder.TestT2DuplicateReorder.test_t2_byzantine_replay_attack_node) ... ok
+test_t2_network_duplicate_and_reorder_safety (e2e.test_t2_duplicate_reorder.TestT2DuplicateReorder.test_t2_network_duplicate_and_reorder_safety) ... ok
+test_t2_rule7_anti_double_voting_and_equivocation (e2e.test_t2_duplicate_reorder.TestT2DuplicateReorder.test_t2_rule7_anti_double_voting_and_equivocation) ... ok
+test_rejected_and_logged_and_chain_continues (e2e.test_t3_invalid_signatures.TestT3EndToEnd.test_rejected_and_logged_and_chain_continues) ... ok
+test_t4_transaction_replay_prevention (e2e.test_t4_replay_tx.TestT4ReplayTx.test_t4_transaction_replay_prevention) ... ok
+test_t5_extreme_pre_gst_partition_safety (e2e.test_t5_gst_safety.TestT5GstSafety.test_t5_extreme_pre_gst_partition_safety) ... ok
+test_t5_pre_gst_drops_and_delays_preserve_safety (e2e.test_t5_gst_safety.TestT5GstSafety.test_t5_pre_gst_drops_and_delays_preserve_safety) ... ok
+test_t6_single_silent_proposer_round_advancement (e2e.test_t6_silent_proposer.TestT6SilentProposer.test_t6_single_silent_proposer_round_advancement) ... ok
+test_t6_three_silent_validators_liveness_preserved (e2e.test_t6_silent_proposer.TestT6SilentProposer.test_t6_three_silent_validators_liveness_preserved) ... ok
+test_t7_coalition_proposer_and_voters (e2e.test_t7_equivocation.TestT7Equivocation.test_t7_coalition_proposer_and_voters)
+Liên minh Byzantine phối hợp: 1 Proposer đề xuất 2 mặt (V1) kết hợp với 2 Voter bỏ phiếu 2 mặt (V4, V7). ... ok
+test_t7_equivocating_proposer_broadcast (e2e.test_t7_equivocation.TestT7Equivocation.test_t7_equivocating_proposer_broadcast)
+Proposer Byzantine (V1 tại height 1 round 0) phát tán 2 block hợp lệ nhưng khác hash ... ok
+test_t7_equivocating_proposer_partitioned (e2e.test_t7_equivocation.TestT7Equivocation.test_t7_equivocating_proposer_partitioned)
+Proposer Byzantine cố tình chia rẽ mạng bằng cách gửi Block A cho nhóm 1 và Block B cho nhóm 2. ... ok
+test_t7_up_to_f_equivocating_voters (e2e.test_t7_equivocation.TestT7Equivocation.test_t7_up_to_f_equivocating_voters)
+Tối đa f = 3 validator Byzantine (V3, V5, V7) gian lận hai mặt (EquivocateVoter), ... ok
+test_t8_byzantine_adversary_determinism (e2e.test_t8_determinism.TestT8Determinism.test_t8_byzantine_adversary_determinism)
+Kiểm tra tính tất định khi có validator Byzantine hoạt động trong mạng. ... ok
+test_t8_chaotic_pre_gst_network_determinism (e2e.test_t8_determinism.TestT8Determinism.test_t8_chaotic_pre_gst_network_determinism)
+Kiểm tra tính tất định trong điều kiện mạng hỗn loạn trước GST (rớt gói, trễ lớn, đảo thứ tự). ... ok
+test_t8_checks_every_honest_node_not_just_node_zero (e2e.test_t8_determinism.TestT8Determinism.test_t8_checks_every_honest_node_not_just_node_zero) ... ok
+test_t8_default_config_rerun_twice (e2e.test_t8_determinism.TestT8Determinism.test_t8_default_config_rerun_twice)
+Chạy 2 lần liên tiếp với cấu hình mặc định (seed 42). ... ok
+test_t8_multiple_arbitrary_seeds (e2e.test_t8_determinism.TestT8Determinism.test_t8_multiple_arbitrary_seeds)
+Kiểm tra tính tất định trên nhiều hạt giống khác nhau (seed 1, 99, 1337). ... ok
+test_t8_rejects_identically_incomplete_runs (e2e.test_t8_determinism.TestT8Determinism.test_t8_rejects_identically_incomplete_runs) ... ok
+test_cli_trace_is_copied_before_temp_cleanup_and_return_code_preserved (integration.test_event_logging_cli.TestEventLogging.test_cli_trace_is_copied_before_temp_cleanup_and_return_code_preserved) ... ok
+test_logged_entry_point_returns_same_success_and_writes_index (integration.test_event_logging_cli.TestEventLogging.test_logged_entry_point_returns_same_success_and_writes_index) ... ok
+test_config_rejects_invalid_fault_model_and_account_names (regression.test_cli.BoundaryAndCLIContracts.test_config_rejects_invalid_fault_model_and_account_names) ... ok
+test_incomplete_cli_fails_instead_of_reporting_deterministic_success (regression.test_cli.BoundaryAndCLIContracts.test_incomplete_cli_fails_instead_of_reporting_deterministic_success) ... ok
+test_nested_sender_cannot_write_foreign_namespace (regression.test_cli.BoundaryAndCLIContracts.test_nested_sender_cannot_write_foreign_namespace) ... ok
+test_twice_logs_match_across_independent_processes (regression.test_cli.BoundaryAndCLIContracts.test_twice_logs_match_across_independent_processes) ... ok
+test_body_poison_is_not_cached_and_valid_body_recovers (regression.test_consensus.ConsensusContracts.test_body_poison_is_not_cached_and_valid_body_recovers) ... ok
+test_duplicate_votes_do_not_supply_quorum (regression.test_consensus.ConsensusContracts.test_duplicate_votes_do_not_supply_quorum) ... ok
+test_invalid_vote_signature (regression.test_consensus.ConsensusContracts.test_invalid_vote_signature) ... ok
+test_late_quorum_locks_without_second_precommit (regression.test_consensus.ConsensusContracts.test_late_quorum_locks_without_second_precommit) ... ok
+test_missing_body_is_requested_again (regression.test_consensus.ConsensusContracts.test_missing_body_is_requested_again) ... ok
+test_nonce_replay_cannot_execute_twice (regression.test_consensus.ConsensusContracts.test_nonce_replay_cannot_execute_twice) ... ok
+test_polka_invalid_or_duplicate_signers_are_rejected_atomically (regression.test_consensus.ConsensusContracts.test_polka_invalid_or_duplicate_signers_are_rejected_atomically) ... ok
+test_round_1001_is_current_and_accepts_authenticated_votes (regression.test_consensus.ConsensusContracts.test_round_1001_is_current_and_accepts_authenticated_votes) ... ok
+test_state_commitment_is_checked_before_prevote (regression.test_consensus.ConsensusContracts.test_state_commitment_is_checked_before_prevote) ... ok
+test_sync_authenticates_header_and_certificate_before_fetching_body (regression.test_consensus.ConsensusContracts.test_sync_authenticates_header_and_certificate_before_fetching_body) ... ok
+test_wrong_vote_domain (regression.test_consensus.ConsensusContracts.test_wrong_vote_domain) ... ok
+test_bootstrap_deduplicates_without_initial_gossip (regression.test_network.NetworkContracts.test_bootstrap_deduplicates_without_initial_gossip) ... ok
+test_connected_sparse_topology_converges (regression.test_network.NetworkContracts.test_connected_sparse_topology_converges) ... ok
+test_json_factory_silent_proposer (regression.test_network.NetworkContracts.test_json_factory_silent_proposer) ... ok
+test_network_delivery_owns_certificate_dictionary (regression.test_network.NetworkContracts.test_network_delivery_owns_certificate_dictionary) ... ok
+test_network_events_have_required_fields_and_body_height (regression.test_network.NetworkContracts.test_network_events_have_required_fields_and_body_height) ... ok
+test_outbound_budget_is_shared_across_destinations (regression.test_network.NetworkContracts.test_outbound_budget_is_shared_across_destinations) ... ok
+test_selective_pre_gst_vote_loss_recovers_with_polka_evidence (regression.test_network.NetworkContracts.test_selective_pre_gst_vote_loss_recovers_with_polka_evidence) ... ok
+test_sparse_delivery_obeys_global_post_gst_delta (regression.test_network.NetworkContracts.test_sparse_delivery_obeys_global_post_gst_delta) ... ok
+test_sparse_route_reserves_pressure_before_origin_send (regression.test_network.NetworkContracts.test_sparse_route_reserves_pressure_before_origin_send) ... ok
+test_current_header_has_capacity_despite_future_round_reservations (regression.test_review_fixes.AuditRegressions.test_current_header_has_capacity_despite_future_round_reservations) ... ok
+test_header_flood_cannot_starve_later_honest_proposers (regression.test_review_fixes.AuditRegressions.test_header_flood_cannot_starve_later_honest_proposers) ... ok
+test_late_certificate_finalizes_block_without_separate_body_cache (regression.test_review_fixes.AuditRegressions.test_late_certificate_finalizes_block_without_separate_body_cache) ... ok
+test_malformed_sync_over_real_network_is_rejected_and_chain_continues (regression.test_review_fixes.AuditRegressions.test_malformed_sync_over_real_network_is_rejected_and_chain_continues) ... ok
+test_reserved_relay_then_another_route_respects_every_actual_window (regression.test_review_fixes.AuditRegressions.test_reserved_relay_then_another_route_respects_every_actual_window) ... ok
+test_reserved_relay_then_direct_send_respects_every_actual_window (regression.test_review_fixes.AuditRegressions.test_reserved_relay_then_direct_send_respects_every_actual_window) ... ok
+test_double_counting_is_detected (test_mutation_gate.MutationGate.test_double_counting_is_detected) ... ok
+test_gossip_disabled_is_detected (test_mutation_gate.MutationGate.test_gossip_disabled_is_detected) ... ok
+test_invalid_signature_acceptance_is_detected (test_mutation_gate.MutationGate.test_invalid_signature_acceptance_is_detected) ... ok
+test_nonce_guard_bypass_is_detected (test_mutation_gate.MutationGate.test_nonce_guard_bypass_is_detected) ... ok
+test_production_factory_bypassed_is_detected (test_mutation_gate.MutationGate.test_production_factory_bypassed_is_detected) ... ok
+test_state_root_guard_bypass_is_detected (test_mutation_gate.MutationGate.test_state_root_guard_bypass_is_detected) ... ok
+test_wrong_domain_acceptance_is_detected (test_mutation_gate.MutationGate.test_wrong_domain_acceptance_is_detected) ... ok
+test_bad_parameters_are_rejected (unit.test_byzantine.TestConfigure.test_bad_parameters_are_rejected) ... ok
+test_registry_and_factory (unit.test_byzantine.TestConfigure.test_registry_and_factory) ... ok
+test_bodies_arriving_one_height_early_are_kept (unit.test_byzantine.TestEquivocateProposer.test_bodies_arriving_one_height_early_are_kept) ... ok
+test_each_group_gets_the_body_of_its_own_header (unit.test_byzantine.TestEquivocateProposer.test_each_group_gets_the_body_of_its_own_header) ... ok
+test_receiver_keeps_first_proposal_and_logs_equivocation (unit.test_byzantine.TestEquivocateProposer.test_receiver_keeps_first_proposal_and_logs_equivocation) ... ok
+test_two_valid_blocks_different_hash_to_two_groups (unit.test_byzantine.TestEquivocateProposer.test_two_valid_blocks_different_hash_to_two_groups) ... ok
+test_without_valid_tx_falls_back_to_honest (unit.test_byzantine.TestEquivocateProposer.test_without_valid_tx_falls_back_to_honest) ... ok
+test_default_targets_broadcast_block_and_nil (unit.test_byzantine.TestEquivocateVoter.test_default_targets_broadcast_block_and_nil) ... ok
+test_outside_attack_slot_votes_like_honest (unit.test_byzantine.TestEquivocateVoter.test_outside_attack_slot_votes_like_honest) ... ok
+test_receiver_counts_first_vote_once_and_logs_equivocation (unit.test_byzantine.TestEquivocateVoter.test_receiver_counts_first_vote_once_and_logs_equivocation) ... ok
+test_two_signed_votes_same_slot_to_two_groups (unit.test_byzantine.TestEquivocateVoter.test_two_signed_votes_same_slot_to_two_groups) ... ok
+test_each_mode_hits_its_own_guard (unit.test_byzantine.TestInvalidBlock.test_each_mode_hits_its_own_guard) ... ok
+test_fake_pol_round_is_not_trusted (unit.test_byzantine.TestInvalidBlock.test_fake_pol_round_is_not_trusted) ... ok
+test_bounded_and_no_rerecord (unit.test_byzantine.TestReplay.test_bounded_and_no_rerecord) ... ok
+test_only_attack_height_and_other_timeouts_still_work (unit.test_byzantine.TestReplay.test_only_attack_height_and_other_timeouts_still_work) ... ok
+test_records_and_replays_identical_message (unit.test_byzantine.TestReplay.test_records_and_replays_identical_message) ... ok
+test_f_byzantine_cannot_force_round_skip (unit.test_byzantine.TestRoundSkipAttack.test_f_byzantine_cannot_force_round_skip) ... ok
+test_f_plus_one_validators_trigger_skip (unit.test_byzantine.TestRoundSkipAttack.test_f_plus_one_validators_trigger_skip) ... ok
+test_far_future_or_absurd_messages_are_not_stored (unit.test_byzantine.TestRoundSkipAttack.test_far_future_or_absurd_messages_are_not_stored) ... ok
+test_all_mode_sends_nothing_at_all (unit.test_byzantine.TestSilent.test_all_mode_sends_nothing_at_all) ... ok
+test_proposer_mode_votes_but_never_proposes (unit.test_byzantine.TestSilent.test_proposer_mode_votes_but_never_proposes) ... ok
+test_class_setup_error_is_recorded_without_hiding_original_error (unit.test_event_logging.TestEventLogging.test_class_setup_error_is_recorded_without_hiding_original_error) ... ok
+test_observer_preserves_both_loggers_and_records_events_before_clear (unit.test_event_logging.TestEventLogging.test_observer_preserves_both_loggers_and_records_events_before_clear) ... ok
+test_result_retains_assertion_and_subtest_failures (unit.test_event_logging.TestEventLogging.test_result_retains_assertion_and_subtest_failures) ... ok
+test_deterministic_state_hash (unit.test_executor.TestExecutor.test_deterministic_state_hash)
+Kiểm tra tính tất định của state.hash() khi nạp dữ liệu khác thứ tự. ... ok
+test_invalid_signature_rejection (unit.test_executor.TestExecutor.test_invalid_signature_rejection)
+Kiểm tra chữ ký bị giả mạo hoặc ký sai khóa. ... ok
+test_nonce_rules_replay_and_gap (unit.test_executor.TestExecutor.test_nonce_rules_replay_and_gap)
+Kiểm tra cơ chế nonce tuần tự: chống replay và chống gap. ... ok
+test_unauthorized_namespace (unit.test_executor.TestExecutor.test_unauthorized_namespace)
+Kiểm tra Alice cố tình sửa dữ liệu trong namespace của Bob. ... ok
+test_valid_tx_execution (unit.test_executor.TestExecutor.test_valid_tx_execution)
+Kiểm tra giao dịch hợp lệ cập nhật đúng dữ liệu và tăng nonce. ... ok
+test_wrong_domain_rejection (unit.test_executor.TestExecutor.test_wrong_domain_rejection)
+Kiểm tra từ chối chữ ký hợp lệ nhưng sai domain separation. ... ok
+test_byzantine_ledger_ignored (unit.test_safety_helpers.TestSafetyChecker.test_byzantine_ledger_ignored) ... ok
+test_fork_detected_even_with_empty_ledger (unit.test_safety_helpers.TestSafetyChecker.test_fork_detected_even_with_empty_ledger) ... ok
+test_progress_detects_stalled_honest (unit.test_safety_helpers.TestSafetyChecker.test_progress_detects_stalled_honest) ... ok
+test_same_chain_ok (unit.test_safety_helpers.TestSafetyChecker.test_same_chain_ok) ... ok
+test_drops_messages_before_gst_when_configured (unit.test_sim.NetTests.test_drops_messages_before_gst_when_configured) ... ok
+test_duplicates_and_reorders_are_logged (unit.test_sim.NetTests.test_duplicates_and_reorders_are_logged) ... ok
+test_peer_is_blocked_then_unblocked (unit.test_sim.NetTests.test_peer_is_blocked_then_unblocked) ... ok
+test_post_gst_delivery_obeys_delta_without_pre_gst_drops (unit.test_sim.NetTests.test_post_gst_delivery_obeys_delta_without_pre_gst_drops) ... ok
+test_rate_limit_delays_excess_sends (unit.test_sim.NetTests.test_rate_limit_delays_excess_sends) ... ok
+test_reads_topology_and_per_link_delay (unit.test_sim.NetTests.test_reads_topology_and_per_link_delay) ... ok
+test_done_node_still_serves (unit.test_sync_request.TestSyncRequestUnit.test_done_node_still_serves) ... ok
+test_requested_range_is_bounded (unit.test_sync_request.TestSyncRequestUnit.test_requested_range_is_bounded) ... ok
+test_round_timeout_asks_for_sync (unit.test_sync_request.TestSyncRequestUnit.test_round_timeout_asks_for_sync) ... ok
+test_synced_block_is_cleaned_like_finalize (unit.test_sync_request.TestSyncRequestUnit.test_synced_block_is_cleaned_like_finalize) ... ok
+test_certificate_of_another_block (unit.test_t3_signatures.TestT3CommitCertificate.test_certificate_of_another_block) ... ok
+test_corrupted_signature (unit.test_t3_signatures.TestT3CommitCertificate.test_corrupted_signature) ... ok
+test_prevotes_are_not_a_commit (unit.test_t3_signatures.TestT3CommitCertificate.test_prevotes_are_not_a_commit) ... ok
+test_round_changed_after_signing (unit.test_t3_signatures.TestT3CommitCertificate.test_round_changed_after_signing) ... ok
+test_signature_moved_to_other_voter (unit.test_t3_signatures.TestT3CommitCertificate.test_signature_moved_to_other_voter) ... ok
+test_too_few_signers (unit.test_t3_signatures.TestT3CommitCertificate.test_too_few_signers) ... ok
+test_txs_dropped_under_real_certificate (unit.test_t3_signatures.TestT3CommitCertificate.test_txs_dropped_under_real_certificate) ... ok
+test_txs_reordered_under_real_certificate (unit.test_t3_signatures.TestT3CommitCertificate.test_txs_reordered_under_real_certificate)
+Hồi quy lỗi cũ của on_sync_response (D), sửa ngày 27/10/2026: trước đây không kiểm ... ok
+test_unknown_signer (unit.test_t3_signatures.TestT3CommitCertificate.test_unknown_signer) ... ok
+test_valid_certificate_is_accepted (unit.test_t3_signatures.TestT3CommitCertificate.test_valid_certificate_is_accepted) ... ok
+test_wrong_domain (unit.test_t3_signatures.TestT3CommitCertificate.test_wrong_domain) ... ok
+test_claims_other_proposer (unit.test_t3_signatures.TestT3Header.test_claims_other_proposer) ... ok
+test_correct_signature_but_not_his_turn (unit.test_t3_signatures.TestT3Header.test_correct_signature_but_not_his_turn) ... ok
+test_corrupted_header_signature (unit.test_t3_signatures.TestT3Header.test_corrupted_header_signature) ... ok
+test_field_changed_after_signing (unit.test_t3_signatures.TestT3Header.test_field_changed_after_signing) ... ok
+test_valid_proposal_is_accepted (unit.test_t3_signatures.TestT3Header.test_valid_proposal_is_accepted) ... ok
+test_wrong_domain (unit.test_t3_signatures.TestT3Header.test_wrong_domain) ... ok
+test_corrupted_tx_signature (unit.test_t3_signatures.TestT3Transaction.test_corrupted_tx_signature) ... ok
+test_tx_wrong_domain (unit.test_t3_signatures.TestT3Transaction.test_tx_wrong_domain) ... ok
+test_corrupted_signature (unit.test_t3_signatures.TestT3TxGossip.test_corrupted_signature) ... ok
+test_signed_by_other_account (unit.test_t3_signatures.TestT3TxGossip.test_signed_by_other_account) ... ok
+test_unknown_sender_and_foreign_key (unit.test_t3_signatures.TestT3TxGossip.test_unknown_sender_and_foreign_key) ... ok
+test_valid_tx_enters_mempool_and_is_gossiped (unit.test_t3_signatures.TestT3TxGossip.test_valid_tx_enters_mempool_and_is_gossiped) ... ok
+test_wrong_domain (unit.test_t3_signatures.TestT3TxGossip.test_wrong_domain) ... ok
+test_corrupted_signature (unit.test_t3_signatures.TestT3Vote.test_corrupted_signature) ... ok
+test_empty_signature (unit.test_t3_signatures.TestT3Vote.test_empty_signature) ... ok
+test_field_changed_after_signing (unit.test_t3_signatures.TestT3Vote.test_field_changed_after_signing) ... ok
+test_unknown_voter (unit.test_t3_signatures.TestT3Vote.test_unknown_voter) ... ok
+test_valid_vote_is_counted (unit.test_t3_signatures.TestT3Vote.test_valid_vote_is_counted) ... ok
+test_wrong_domain (unit.test_t3_signatures.TestT3Vote.test_wrong_domain) ... ok
+
+----------------------------------------------------------------------
+Ran 150 tests in 28.722s
+
+OK

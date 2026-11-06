@@ -1,0 +1,2 @@
+# test=tests.integration.test_event_logging_cli.TestEventLogging.test_logged_entry_point_returns_same_success_and_writes_index
+# outcome=passed

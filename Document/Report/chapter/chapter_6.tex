@@ -1,0 +1,70 @@
+\section{Kiểm thử và kết quả}
+\label{sec:testing}
+
+\subsection{Thiết lập và kiểm thử thành phần}
+
+Hình thức: sử dụng \texttt{unittest}, gồm unit test và mô phỏng E2E theo Mục 9 của đề bài. Cấu hình nền có $n=10$, $f=3$, quorum $Q=7$, seed 42 và mục tiêu tạo ra 5 block; mỗi ca thay đổi điều kiện mạng hoặc dữ liệu theo mục tiêu kiểm tra riêng. Safety được kiểm trên mọi height đã chốt của các node trung thực; progress được kiểm riêng bằng số block hoàn tất. Oracle độc lập xác minh ledger và trạng thái để tránh chấp nhận trường hợp các node cùng cho một kết quả sai.
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\noindent\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{4.4cm}@{}}
+\toprule
+\textbf{Nhóm kiểm thử} & \textbf{Ca kiểm và kỳ vọng} & \textbf{Kết quả thực chạy} \\
+\midrule
+Chữ ký và context & Nhận chữ ký đúng; loại chữ ký bị sửa, sai khóa, domain hoặc chain ID. & Đạt với TX, header, vote và certificate. \\
+\addlinespace
+Cập nhật state & Kiểm cập nhật hợp lệ, sai namespace, nonce cũ/nhảy cóc và hash ổn định khi đổi thứ tự map. & 6/6 ca executor đạt. \\
+\addlinespace
+Đếm vote & Vote trùng chỉ tính một lần; phát hiện vote mâu thuẫn cùng slot. & Đạt; vote trùng không tạo quorum. \\
+\addlinespace
+Xác thực block & Nhận proposal hợp lệ; loại header sai chữ ký, sai proposer hoặc state commitment. & Đạt; commitment sai bị chặn trước PREVOTE. \\
+\bottomrule
+\end{tabularx}
+\endgroup
+
+\subsection{Kết quả kiểm thử quy trình E2E theo kịch bản T1--T8}
+
+Bảng~\ref{tab:test-matrix} gồm tám kịch bản bắt buộc, được chạy riêng ngày 06/11/2026: \textbf{20/20 test đạt trong 9,820 giây}, 0 failure/error/skip, exit code 0. T1--T8 là tám nhóm kịch bản, gồm lần lượt 1, 3, 1, 1, 2, 2, 4 và 6 test; không cộng riêng các biến thể subtest. Bằng chứng trong thư mục nộp: \texttt{logs/t1-t8/run-8rks9po9/summary.json}, các log từng test được liệt kê trong index và \texttt{logs/t1-t8-console.txt}. Trạng thái đạt dựa trên assertion và log xác nhận điều kiện thử đã xảy ra.
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{longtable}{@{}p{0.55cm}>{\raggedright\arraybackslash}p{3.15cm}>{\raggedright\arraybackslash}p{4.1cm}>{\raggedright\arraybackslash}p{6.2cm}@{}}
+\caption{Đối chiếu kết quả T1--T8 với yêu cầu đề bài}
+\label{tab:test-matrix}\\
+\toprule
+\textbf{ID} & \textbf{Điều kiện thử} & \textbf{Kỳ vọng } & \textbf{Kết quả quan sát} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{ID} & \textbf{Điều kiện thử} & \textbf{Kỳ vọng } & \textbf{Kết quả quan sát} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+T1 & Không lỗi; GST bằng 0, $\delta=1$; tắt duplicate/reorder và throttling. & Mọi node trung thực chốt cùng chain và state hash. & Đạt: Cả 10 node chốt đủ 5 block ở round 0; ba khóa tài khoản đều bằng \texttt{v5}, nonce đều bằng 5; state hash giống nhau. \\
+\midrule
+T2 & Duplicate 0,25; reorder 0,35; gửi vote trùng và mâu thuẫn cùng slot. & Không đếm trùng vote, không chốt block mâu thuẫn. & Đạt: Có DUPLICATE, DELAY; mỗi voter chỉ tính một lần; không fork sau khi thực hiện. \\
+\midrule
+T3 & Tiêm vote/header/TX sai chữ ký hoặc domain, cùng certificate giả. & Từ chối thông điệp và ghi lý do. & Đạt. Có \texttt{bad\_vote\_sig}, \texttt{bad\_header\_sig}, \texttt{bad\_tx\_sig} và \texttt{invalid\_cert\_sig}; dữ liệu giả không vào ledger; honest node vẫn chốt đủ 5 block. \\
+\midrule
+T4 & Gửi TX Alice nonce 1 hai lần trước commit và replay sau commit; chạy 3 height. & Giao dịch được áp dụng tối đa một lần. & Đạt. TX nằm đúng một lần trong ledger mỗi node; nonce Alice bằng 1, dữ liệu đúng đầu vào; mọi node chốt đủ 3 block, mempool cuối rỗng. \\
+\midrule
+T5 & Drop/delay trước GST; seed 42, 43, 44, 99; thêm biến thể drop 0,40. & Safety được giữ; không chốt hai block khác nhau tại cùng height. & 2/2 ca đạt, gồm các biến thể seed. Có DROP trước GST; không phát hiện conflicting finalization, certificate đã chốt hợp lệ. \\
+\midrule
+T6 & V1 im lặng; biến thể có V1, V4, V7 cùng im lặng. & Timeout kích hoạt, chuỗi tiếp tục tiến triển. & 2/2 ca đạt. Nhánh V1: V0 timeout PROPOSE tại $t=200$, chốt height 1 ở round 1 tại $t=788$ bởi proposer V2; mọi honest node chốt đủ 5 block. \\
+\midrule
+T7 & Proposer gửi proposal mâu thuẫn; tối đa $f=3$ Byzantine equivocate. & Không có conflicting finalization giữa các node trung thực. & 4/4 ca đạt. Có log tấn công và EQUIVOCATION; không fork; mọi honest node chốt đủ 5 block với certificate hợp lệ. \\
+\midrule
+T8 & Hai lần cùng seed, config và identity; thử thêm mạng lỗi và Byzantine. & Log giống từng byte và cùng final state hash. & 6/6 ca đạt, gồm đối chứng âm. Hai lần chạy hợp lệ đều hoàn tất, log gốc UTF-8 và final state hash bằng nhau trên mọi honest node; đối chứng sai bị phát hiện. \\
+\end{longtable}
+\endgroup
+
+\subsection{Tổng kết và tái lập}
+
+Chạy riêng toàn bộ nhóm \texttt{tests/e2e} ngày 06/11/2026 cho kết quả \textbf{37/37 test đạt trong 20,718 giây}, 0 failure/error/skip, exit code 0. Nhóm này gồm T1--T8 và các ca Byzantine, catch-up, mạng lỗi, ranh giới quorum. Bằng chứng: \texttt{logs/e2e/run-\_0c6h6zv/summary.json} và \texttt{logs/e2e-console.txt}. Thời gian này và thời gian riêng T1--T8 ở trên đều do \texttt{unittest} đo cho toàn bộ lần chạy tương ứng, không phải thời gian mô phỏng.
+
+Lần chạy thử nghiệm trong thư mục nộp sử dụng Python 3.12.14 và \texttt{cryptography} 50.0.2. Kết quả: \textbf{150/150 test đạt}, 0 failure/error/skip, exit code 0, thời gian 35,265 giây; không cộng riêng các biến thể subtest. \\ Chạy lại từ thư mục nộp bài (thư mục có tiền tố \texttt{Lab01\_} tại gốc repository) bằng \texttt{python -X utf8 -B -m tests -v}. \\ Bằng chứng của lần chạy này nằm trong \texttt{logs/tests/run-4udyr5el/summary.json} và các log từng test được liệt kê trong đó; transcript \texttt{logs/acceptance-console.txt} ghi nhận tổng số test, thời gian và kết quả \texttt{OK} của cùng run. Các đường dẫn này được tính từ thư mục nộp bài; cách cài đặt và chạy chi tiết được trình bày trong README.

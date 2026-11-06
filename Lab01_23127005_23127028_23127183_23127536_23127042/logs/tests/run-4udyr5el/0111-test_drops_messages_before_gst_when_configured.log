@@ -1,0 +1,4 @@
+# test=tests.unit.test_sim.NetTests.test_drops_messages_before_gst_when_configured
+network=1 t=0 node=V0 ev=SEND dst=V1 type=TEST height=0
+network=1 t=0 node=V0 ev=DROP dst=V1 type=TEST height=0 reason=pre_gst
+# outcome=passed
