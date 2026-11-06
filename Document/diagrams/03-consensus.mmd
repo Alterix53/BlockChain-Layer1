@@ -1,0 +1,85 @@
+classDiagram
+    direction LR
+    class Node {
+        +int idx
+        +str name
+        +dict ctx
+        +KeyPair kp
+        +Net net
+        +int Q
+        +State state
+        +list ledger
+        +dict certificates
+        +list mempool
+        +set seen_tx_hashes
+        +bool done
+        +int height
+        +int round
+        +str step
+        +dict signed
+        +tuple locked
+        +dict proposals
+        +dict blocks
+        +dict checked
+        +dict votes
+        +dict proofs
+        +dict sync_pending
+        +dict pending_headers
+        +set requested_bodies
+        +__init__(idx, ctx, kp)
+        +start()
+        +start_height(h)
+        +start_round(r)
+        +proposer(h, r) str
+        +propose()
+        +make_block() Block
+        +seal(txs, state_hash, pol_round) Block
+        +send_proposal(blk)
+        +make_vote(kind, target) Vote
+        +cast(kind, target)
+        +on_message(msg, src)
+        +on_tx(tx, gossip)
+        +on_header(hd, src)
+        +on_request_body(block_hash, src)
+        +on_body(payload)
+        +on_proposal(b)
+        +on_vote(v)
+        +polka(h, r, bh) bool
+        +polka_votes(h, r, bh) tuple
+        +on_polka(votes)
+        +check_block(b) tuple
+        +prevote_target(b) bytes
+        +request_sync()
+        +on_sync_request(req)
+        +certificate_error(cert, h, bh)
+        +on_sync_headers(items, src)
+        +on_sync_response(resp)
+        +run()
+        +on_timeout(key)
+        +finalize(b, cert)
+    }
+    class State {
+        +dict data
+        +dict nonces
+        +copy() State
+        +hash() bytes
+    }
+    class Net
+    class KeyPair
+    class Block
+    class Tx
+    class Vote
+    class Header
+    class CommitCertificate
+    class SyncReq
+    class SyncResp
+    Node *-- "1" State : current state
+    Node --> "1" Net : sends and schedules
+    Node --> "1" KeyPair : signing key
+    Node --> "0..*" Block : ledger and proposals
+    Node --> "0..*" Tx : mempool
+    Node --> "0..*" Vote : votes and proofs
+    Node --> "0..*" Header : pending headers
+    Node --> "0..*" CommitCertificate : certificates and sync_pending
+    Node ..> SyncReq : creates and handles
+    Node ..> SyncResp : creates and handles

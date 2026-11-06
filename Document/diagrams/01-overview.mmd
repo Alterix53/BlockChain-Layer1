@@ -1,0 +1,52 @@
+classDiagram
+    direction TB
+    class Net {
+        +int now
+        +list q
+        +list nodes
+        +send(src, dst, msg)
+        +broadcast(src, msg)
+        +run(t_end)
+    }
+    class Node {
+        +str name
+        +int height
+        +int round
+        +str step
+        +list ledger
+        +dict certificates
+        +on_message(msg, src)
+        +on_timeout(key)
+        +finalize(b, cert)
+    }
+    class State {
+        +dict data
+        +dict nonces
+        +copy() State
+        +hash() bytes
+    }
+    class KeyPair {
+        +Ed25519PrivateKey sk
+        +bytes pk
+    }
+    class Block {
+        +Header header
+        +tuple txs
+        +hash() bytes
+    }
+    class Header
+    class Tx
+    class Vote
+    class CommitCertificate
+    class ByzantineBase
+    Net "1" o-- "0..*" Node : nodes
+    Node --> "1" Net : net
+    Node *-- "1" State : state
+    Node --> "1" KeyPair : kp
+    Node --> "0..*" Block : ledger and block buffers
+    Node --> "0..*" CommitCertificate : certificates
+    Node --> "0..*" Vote : votes
+    Block "0..*" --> "1" Header : header
+    Block "0..*" --> "0..*" Tx : txs
+    CommitCertificate ..> Block : identifies by block_hash
+    Node <|-- ByzantineBase

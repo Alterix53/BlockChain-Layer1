@@ -1,0 +1,55 @@
+classDiagram
+    direction TB
+    class TestCase {
+        <<external>>
+        +assertEqual(first, second)
+        +assertTrue(expr)
+        +assertNotIn(member, container)
+    }
+    class TestSyncCatchUpNetwork {
+        +test_isolated_node_catches_up()
+        +test_normal_run_never_asks()
+    }
+    class TestT3EndToEnd {
+        +test_rejected_and_logged_and_chain_continues()
+    }
+    class Net {
+        +list nodes
+        +list logs
+        +run(t_end)
+    }
+    class IsolateNet {
+        +int ISOLATED
+        +int GST
+        +_transmit(src, dst, msg)
+    }
+    class InjectNet {
+        +list bad
+        +Block fake_block
+        +Tx fake_tx
+        +run(t_end)
+    }
+    class PartitionNet {
+        +int gst
+        +dict side
+        +__init__(cfg, side)
+        +_transmit(src, dst, msg)
+    }
+    class MainModule {
+        <<module>>
+        +run_sim(cfg) Net
+    }
+    class QuorumExperimentModule {
+        <<module>>
+        +run_experiment(n, q, right, f, seed, gst, network)
+    }
+    TestCase <|-- TestSyncCatchUpNetwork
+    TestCase <|-- TestT3EndToEnd
+    Net <|-- IsolateNet
+    Net <|-- InjectNet
+    Net <|-- PartitionNet
+    TestSyncCatchUpNetwork ..> MainModule : invokes run_sim
+    TestSyncCatchUpNetwork ..> IsolateNet : patches network class
+    TestT3EndToEnd ..> MainModule : invokes run_sim
+    TestT3EndToEnd ..> InjectNet : patches network class
+    QuorumExperimentModule ..> PartitionNet : creates partition network
