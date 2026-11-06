@@ -1,0 +1,73 @@
+classDiagram
+    direction TB
+    class KeyPair {
+        +Ed25519PrivateKey sk
+        +bytes pk
+        +__init__(seed)
+    }
+    class Tx {
+        <<dataclass>>
+        +str sender
+        +int nonce
+        +str key
+        +str value
+        +bytes sig
+        +int height
+        +body() list
+    }
+    class Header {
+        <<dataclass>>
+        +int height
+        +int round
+        +int pol_round
+        +bytes parent
+        +bytes state_hash
+        +bytes tx_root
+        +str proposer
+        +bytes sig
+        +body() list
+    }
+    class Block {
+        <<dataclass>>
+        +Header header
+        +tuple txs
+        +hash() bytes
+    }
+    class Vote {
+        <<dataclass>>
+        +str kind
+        +int height
+        +int round
+        +bytes block_hash
+        +str voter
+        +bytes sig
+        +body() list
+    }
+    class CommitCertificate {
+        <<dataclass>>
+        +int height
+        +int round
+        +bytes block_hash
+        +dict signatures
+    }
+    class SyncReq {
+        <<dataclass>>
+        +str requester
+        +int from_height
+        +int to_height
+        +int height
+    }
+    class SyncResp {
+        <<dataclass>>
+        +str responder
+        +tuple chain_data
+        +int height
+    }
+    Block "0..*" --> "1" Header : header
+    Block "0..*" --> "0..*" Tx : ordered txs
+    Vote ..> Block : block_hash or NIL
+    CommitCertificate ..> Block : block_hash
+    CommitCertificate ..> Vote : stores PRECOMMIT signatures
+    SyncResp "0..*" --> "0..*" Block : chain_data pairs
+    SyncResp "0..*" --> "0..*" CommitCertificate : chain_data pairs
+    SyncReq ..> SyncResp : request and response

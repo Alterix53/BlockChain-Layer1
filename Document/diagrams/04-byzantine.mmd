@@ -1,0 +1,81 @@
+classDiagram
+    direction TB
+    class Node {
+        +bool is_byzantine
+        +send_to(dst, msg)
+        +cast(kind, target)
+        +propose()
+        +on_message(msg, src)
+        +on_timeout(key)
+    }
+    class ByzantineBase {
+        +bool is_byzantine
+        +int attack_height
+        +int attack_round
+        +tuple groups
+        +list evidence
+        +configure(height, round, groups)
+        +active() bool
+        +sign_header(hd) Header
+        +build_block(txs) Block
+        +first_valid_tx()
+        +send_to_many(msg, dsts)
+        +send_vote(vote, dsts)
+        +send_proposal(block, dsts)
+    }
+    class Silent {
+        +str mode
+        +configure(mode)
+        +start()
+        +propose()
+        +on_message(msg, src)
+        +on_timeout(key)
+    }
+    class EquivocateVoter {
+        +tuple targets
+        +tuple phases
+        +configure(targets, phases)
+        +cast(kind, target)
+    }
+    class EquivocateProposer {
+        +propose()
+    }
+    class InvalidBlock {
+        +str mode
+        +configure(mode)
+        +on_request_body(block_hash, src)
+        +propose()
+    }
+    class Replay {
+        +tuple kinds
+        +int delay
+        +int limit
+        +list recorded
+        +configure(kinds, delay, limit)
+        +msg_height(msg) int
+        +on_message(msg, src)
+        +on_timeout(key)
+    }
+    class ForkCoalition {
+        +Coalition coalition
+        +configure(coalition)
+        +start()
+        +on_timeout(key)
+        +on_message(msg, src)
+    }
+    class Coalition {
+        +tuple left
+        +tuple right
+        +tuple blocks
+        +__init__(left, right)
+    }
+    Node <|-- ByzantineBase
+    ByzantineBase <|-- Silent
+    ByzantineBase <|-- EquivocateVoter
+    ByzantineBase <|-- EquivocateProposer
+    ByzantineBase <|-- InvalidBlock
+    ByzantineBase <|-- Replay
+    ByzantineBase <|-- ForkCoalition
+    ForkCoalition "0..*" --> "1" Coalition : shared attack plan
+    Coalition --> "0..2" Block : blocks
+    class Block

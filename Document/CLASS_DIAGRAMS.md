@@ -1,30 +1,101 @@
-# BỘ SƠ ĐỒ LỚP CHI TIẾT HỆ THỐNG BLOCKCHAIN LAYER 1
-## Tendermint BFT Consensus Engine & Discrete Event Simulation (DES)
+# Sơ đồ lớp — Blockchain Layer 1
 
-Tài liệu này cung cấp đầy đủ và chính xác 100% các sơ đồ lớp (UML Class Diagrams) của hệ thống Blockchain Layer 1 theo cấu trúc mã nguồn trong thư mục `Workspace/src/`. Hệ thống được thiết kế theo mô hình hướng đối tượng kết hợp kiến trúc hướng sự kiện (Event-Driven Architecture) với 4 cụm sơ đồ chính:
+Các sơ đồ đối chiếu với mã nguồn hiện tại trong `Workspace/src/` và các lớp mạng phục vụ E2E trong `Workspace/tests/e2e/`. Bộ sơ đồ 1–5 bao phủ 19 lớp cấp cao nhất của phần triển khai; mỗi sơ đồ chọn mức chi tiết theo mục đích đọc, không liệt kê toàn bộ phương thức nội bộ.
 
-1. **Sơ đồ Data Models & Cryptography (`src/common.py`)**
-2. **Sơ đồ Consensus Engine & Byzantine Fault Injection (`src/node.py`, `src/byzantine.py`)**
-3. **Sơ đồ Network Simulation & State Machine Execution (`src/sim.py`, `src/execution.py`)**
-4. **Sơ đồ Kiến trúc Tổng thể Hệ thống 5 Lớp (System Architecture)**
+## Cách đọc và sử dụng
 
----
+- `A <|-- B`: B kế thừa A.
+- `A --> B`: A giữ tham chiếu tới B; nhãn cạnh ghi tên trường hoặc vai trò.
+- `A o-- B`: A quản lý tập đối tượng B (aggregation).
+- `A *-- B`: B là trạng thái riêng thuộc A (composition).
+- `A ..> B`: A sử dụng B hoặc liên hệ qua dữ liệu, không nhất thiết giữ đối tượng B.
+- `1`, `0..*`: số lượng đối tượng tại đầu quan hệ. Bội số phản ánh cấu trúc dữ liệu, không thay thế ràng buộc cấu hình của runner.
+- `<<module>>` và `<<external>>` phân biệt module hàm và lớp thư viện ngoài với lớp của dự án.
+- Dấu `+` biểu diễn khả năng truy cập trong Python; dấu gạch dưới ở tên phương thức giữ quy ước nội bộ của mã nguồn. Chữ ký được rút gọn, bỏ mặc định và một số `**kwargs`. Kiểu trả về được ghi khi hữu ích.
 
-## 1. SƠ ĐỒ DATA MODELS & CRYPTOGRAPHY (`src/common.py`)
+Xem trực tiếp các khối Mermaid trên trình xem Markdown hỗ trợ Mermaid, hoặc mở từng file `.mmd` trong [diagrams/](diagrams/). Với báo cáo ngắn, dùng sơ đồ **1** cho thiết kế tổng quan hoặc sơ đồ **6** cho phần testing; các sơ đồ chi tiết có thể đặt ở phụ lục.
 
-Cụm mô hình dữ liệu định nghĩa các thực thể cốt lõi bất biến (Immutable Data Transfer Objects - `@dataclass(frozen=True)`), đảm bảo tính toàn vẹn thông qua chữ ký số Ed25519 và phân tách miền (Domain Separation).
+## 1. Tổng quan các lớp chính
+
+Nguồn: `Workspace/src/node.py`, `sim.py`, `execution.py`, `common.py`, `byzantine.py`.
+
+Sơ đồ rút gọn phù hợp chèn vào phần thiết kế của báo cáo. Node giữ trạng thái riêng, tham chiếu mạng và lưu các block/chứng nhận đã chốt.
+
+File riêng: [01-overview.mmd](diagrams/01-overview.mmd).
 
 ```mermaid
 classDiagram
     direction TB
-
+    class Net {
+        +int now
+        +list q
+        +list nodes
+        +send(src, dst, msg)
+        +broadcast(src, msg)
+        +run(t_end)
+    }
+    class Node {
+        +str name
+        +int height
+        +int round
+        +str step
+        +list ledger
+        +dict certificates
+        +on_message(msg, src)
+        +on_timeout(key)
+        +finalize(b, cert)
+    }
+    class State {
+        +dict data
+        +dict nonces
+        +copy() State
+        +hash() bytes
+    }
     class KeyPair {
         +Ed25519PrivateKey sk
         +bytes pk
-        +__init__(seed: bytes)
     }
+    class Block {
+        +Header header
+        +tuple txs
+        +hash() bytes
+    }
+    class Header
+    class Tx
+    class Vote
+    class CommitCertificate
+    class ByzantineBase
+    Net "1" o-- "0..*" Node : nodes
+    Node --> "1" Net : net
+    Node *-- "1" State : state
+    Node --> "1" KeyPair : kp
+    Node --> "0..*" Block : ledger and block buffers
+    Node --> "0..*" CommitCertificate : certificates
+    Node --> "0..*" Vote : votes
+    Block "0..*" --> "1" Header : header
+    Block "0..*" --> "0..*" Tx : txs
+    CommitCertificate ..> Block : identifies by block_hash
+    Node <|-- ByzantineBase
+```
 
+## 2. Mô hình dữ liệu và khóa mật mã
+
+Nguồn: `Workspace/src/common.py`.
+
+Bảy lớp dữ liệu dùng `@dataclass(frozen=True)`. Các trường dict bên trong vẫn có thể thay đổi; frozen không có nghĩa là bất biến sâu. `height` của Tx là property luôn trả về 0 để hỗ trợ log. Quan hệ với block qua hash là phụ thuộc, không phải tham chiếu trực tiếp tới đối tượng.
+
+File riêng: [02-data-models.mmd](diagrams/02-data-models.mmd).
+
+```mermaid
+classDiagram
+    direction TB
+    class KeyPair {
+        +Ed25519PrivateKey sk
+        +bytes pk
+        +__init__(seed)
+    }
     class Tx {
+        <<dataclass>>
         +str sender
         +int nonce
         +str key
@@ -33,8 +104,8 @@ classDiagram
         +int height
         +body() list
     }
-
     class Header {
+        <<dataclass>>
         +int height
         +int round
         +int pol_round
@@ -45,14 +116,14 @@ classDiagram
         +bytes sig
         +body() list
     }
-
     class Block {
+        <<dataclass>>
         +Header header
         +tuple txs
         +hash() bytes
     }
-
     class Vote {
+        <<dataclass>>
         +str kind
         +int height
         +int round
@@ -61,67 +132,47 @@ classDiagram
         +bytes sig
         +body() list
     }
-
     class CommitCertificate {
+        <<dataclass>>
         +int height
         +int round
         +bytes block_hash
         +dict signatures
     }
-
     class SyncReq {
+        <<dataclass>>
         +str requester
         +int from_height
         +int to_height
         +int height
     }
-
     class SyncResp {
+        <<dataclass>>
         +str responder
         +tuple chain_data
         +int height
     }
-
-    class CryptoUtils {
-        <<module common.py>>
-        +encode(o) bytes
-        +H(data: bytes) bytes
-        +sign(kp: KeyPair, domain: str, body: list) bytes
-        +verify(pk: bytes, domain: str, body: list, sig: bytes) bool
-        +tx_root(txs: tuple) bytes
-    }
-
-    Block *-- Header : chứa (1-to-1)
-    Block o-- Tx : chứa tập giao dịch (0-to-n)
-    CommitCertificate ..> Vote : tổng hợp >= 2f+1 chữ ký PRECOMMIT
-    CommitCertificate ..> Block : tham chiếu block_hash
-    SyncResp o-- Block : chứa các block đồng bộ
-    SyncResp o-- CommitCertificate : chứa chứng chỉ cam kết chốt
-    CryptoUtils ..> KeyPair : ký và xác thực
-    CryptoUtils ..> Tx : tính Merkle tx_root và verify
-    CryptoUtils ..> Header : verify chữ ký proposer
-    CryptoUtils ..> Vote : verify chữ ký voter
+    Block "0..*" --> "1" Header : header
+    Block "0..*" --> "0..*" Tx : ordered txs
+    Vote ..> Block : block_hash or NIL
+    CommitCertificate ..> Block : block_hash
+    CommitCertificate ..> Vote : stores PRECOMMIT signatures
+    SyncResp "0..*" --> "0..*" Block : chain_data pairs
+    SyncResp "0..*" --> "0..*" CommitCertificate : chain_data pairs
+    SyncReq ..> SyncResp : request and response
 ```
 
-### Đặc điểm thiết kế & Tính đúng đắn của Data Models:
-- **`Block.hash()`**: Chỉ băm các trường nội dung cốt lõi `[height, parent, state_hash, tx_root]`. Không băm `round`, `pol_round`, `proposer` để đảm bảo cùng một nội dung khối khi đề xuất lại ở các round sau vẫn giữ nguyên mã định danh `block_hash`.
-- **`Domain Separation`**:
-  - `Tx.sig`: Ký với miền `"TX:" + chain_id`.
-  - `Header.sig`: Ký với miền `"HEADER:" + chain_id`.
-  - `Vote.sig`: Ký với miền `"VOTE:" + chain_id`.
-  - Chống tuyệt đối tấn công giả mạo hoặc phát lại chéo ngữ cảnh (Cross-protocol Replay).
-- **`CommitCertificate`**: Gom tối thiểu $Q = 2f + 1$ chữ ký `PRECOMMIT` hợp lệ. Đóng vai trò là bằng chứng mật mã (Finality Proof) cho giao thức bắt kịp dữ liệu (`Catch-up Sync`).
+## 3. Validator và trạng thái đồng thuận
 
----
+Nguồn: `Workspace/src/node.py`, `execution.py`, `common.py`.
 
-## 2. SƠ ĐỒ CONSENSUS ENGINE & BYZANTINE FAULT INJECTION (`src/node.py`, `src/byzantine.py`)
+Chọn các thuộc tính và phương thức chính, không liệt kê mọi helper. Mempool là list, context là dict và proof POLKA là tập Vote trong dict; không có lớp Mempool, Context hay PolkaCertificate riêng. `seal()` trả về Block, không phải Header.
 
-Cụm đồng thuận cài đặt cỗ máy trạng thái Tendermint BFT với 7 quy tắc vàng. Cây phân cấp Byzantine kế thừa toàn diện từ `Node` nhằm kiểm thử khả năng chịu lỗi và an toàn mạng.
+File riêng: [03-consensus.mmd](diagrams/03-consensus.mmd).
 
 ```mermaid
 classDiagram
-    direction TB
-
+    direction LR
     class Node {
         +int idx
         +str name
@@ -129,8 +180,6 @@ classDiagram
         +KeyPair kp
         +Net net
         +int Q
-        +int max_ahead
-        +int max_round
         +State state
         +list ledger
         +dict certificates
@@ -145,165 +194,201 @@ classDiagram
         +dict proposals
         +dict blocks
         +dict checked
-        +set scheduled
-        +dict peer_round
         +dict votes
-        +dict future
-        +dict future_blocks
-        +dict bodies
-        +list future_headers
+        +dict proofs
+        +dict sync_pending
         +dict pending_headers
         +set requested_bodies
-        +bool is_byzantine
-        +__init__(idx: int, ctx: dict, kp: KeyPair)
-        +log(ev: str, **kw)
-        +last_hash() bytes
-        +proposer(h: int, r: int) str
-        +in_window(h: int, r: int) bool
+        +__init__(idx, ctx, kp)
         +start()
-        +start_height(h: int)
-        +start_round(r: int)
-        +timeout_len(r: int) int
-        +set_timeout(kind: str, mult: int)
-        +skip_target() int
-        +maybe_skip_round()
-        +polka(h: int, r: int, bh: bytes) bool
-        +best_polka() tuple
+        +start_height(h)
+        +start_round(r)
+        +proposer(h, r) str
         +propose()
         +make_block() Block
-        +seal(txs: tuple, state_hash: bytes, pol_round: int) Header
-        +send_proposal(blk: Block)
-        +make_vote(kind: str, target: bytes) Vote
-        +send_vote(v: Vote)
-        +on_message(msg: tuple, src: int)
-        +on_tx(tx: Tx)
+        +seal(txs, state_hash, pol_round) Block
+        +send_proposal(blk)
+        +make_vote(kind, target) Vote
+        +cast(kind, target)
+        +on_message(msg, src)
+        +on_tx(tx, gossip)
+        +on_header(hd, src)
+        +on_request_body(block_hash, src)
+        +on_body(payload)
+        +on_proposal(b)
+        +on_vote(v)
+        +polka(h, r, bh) bool
+        +polka_votes(h, r, bh) tuple
+        +on_polka(votes)
+        +check_block(b) tuple
+        +prevote_target(b) bytes
         +request_sync()
-        +on_sync_request(req: SyncReq)
-        +send_to(dst: int, msg: tuple)
-        +on_sync_response(resp: SyncResp)
-        +keep_first(book: dict, b: Block) bool
-        +on_header(hd: Header, src: int)
-        +on_request_body(block_hash: bytes, src: int)
-        +on_body(payload: tuple)
-        +on_proposal(b: Block)
-        +on_vote(v: Vote)
-        +check_block(b: Block) tuple
-        +_check(b: Block) tuple
-        +prevote_target(b: Block) bytes
-        +cast(kind: str, target: bytes)
+        +on_sync_request(req)
+        +certificate_error(cert, h, bh)
+        +on_sync_headers(items, src)
+        +on_sync_response(resp)
         +run()
-        +on_timeout(key: tuple)
-        +finalize(b: Block, cert: CommitCertificate)
+        +on_timeout(key)
+        +finalize(b, cert)
     }
+    class State {
+        +dict data
+        +dict nonces
+        +copy() State
+        +hash() bytes
+    }
+    class Net
+    class KeyPair
+    class Block
+    class Tx
+    class Vote
+    class Header
+    class CommitCertificate
+    class SyncReq
+    class SyncResp
+    Node *-- "1" State : current state
+    Node --> "1" Net : sends and schedules
+    Node --> "1" KeyPair : signing key
+    Node --> "0..*" Block : ledger and proposals
+    Node --> "0..*" Tx : mempool
+    Node --> "0..*" Vote : votes and proofs
+    Node --> "0..*" Header : pending headers
+    Node --> "0..*" CommitCertificate : certificates and sync_pending
+    Node ..> SyncReq : creates and handles
+    Node ..> SyncResp : creates and handles
+```
 
+## 4. Cây kế thừa và phối hợp Byzantine
+
+Nguồn: `Workspace/src/byzantine.py`.
+
+Các phương thức trong lớp con là những hook được ghi đè hoặc bổ sung. ByzantineBase kế thừa `send_to()` từ Node. ForkCoalition phục vụ thí nghiệm quorum, dùng chung Coalition giữa nhiều node; không phải thành phần bắt buộc của mô phỏng chuẩn.
+
+File riêng: [04-byzantine.mmd](diagrams/04-byzantine.mmd).
+
+```mermaid
+classDiagram
+    direction TB
+    class Node {
+        +bool is_byzantine
+        +send_to(dst, msg)
+        +cast(kind, target)
+        +propose()
+        +on_message(msg, src)
+        +on_timeout(key)
+    }
     class ByzantineBase {
         +bool is_byzantine
         +int attack_height
         +int attack_round
-        +list groups
+        +tuple groups
         +list evidence
-        +configure(height: int, round: int, groups: list)
-        +_check_groups(groups: list)
+        +configure(height, round, groups)
         +active() bool
-        +sign_header(hd: Header) bytes
-        +build_block(txs: tuple) Block
-        +first_valid_tx() Tx
-        +send_to(dst: any, msg: any)
-        +send_to_many(msg: tuple, dsts: list)
-        +send_vote(vote: Vote, dsts: list)
-        +send_proposal(block: Block, dsts: list)
+        +sign_header(hd) Header
+        +build_block(txs) Block
+        +first_valid_tx()
+        +send_to_many(msg, dsts)
+        +send_vote(vote, dsts)
+        +send_proposal(block, dsts)
     }
-
     class Silent {
         +str mode
-        +configure(mode: str, **base)
+        +configure(mode)
         +start()
         +propose()
-        +on_message(msg: tuple, src: int)
-        +on_timeout(key: tuple)
+        +on_message(msg, src)
+        +on_timeout(key)
     }
-
     class EquivocateVoter {
         +tuple targets
         +tuple phases
-        +configure(targets: tuple, phases: tuple, **base)
-        +cast(kind: str, target: bytes)
+        +configure(targets, phases)
+        +cast(kind, target)
     }
-
     class EquivocateProposer {
         +propose()
     }
-
     class InvalidBlock {
         +str mode
-        +configure(mode: str, **base)
+        +configure(mode)
+        +on_request_body(block_hash, src)
         +propose()
     }
-
     class Replay {
         +tuple kinds
         +int delay
         +int limit
         +list recorded
-        +configure(kinds: tuple, delay: int, limit: int, **base)
-        +msg_height(msg: tuple) int
-        +on_message(msg: tuple, src: int)
-        +on_timeout(key: tuple)
+        +configure(kinds, delay, limit)
+        +msg_height(msg) int
+        +on_message(msg, src)
+        +on_timeout(key)
     }
-
-    class Coalition {
-        +list left
-        +list right
-        +__init__(left: list, right: list)
-    }
-
     class ForkCoalition {
         +Coalition coalition
-        +configure(coalition: Coalition, **base)
+        +configure(coalition)
         +start()
-        +on_timeout(key: tuple)
-        +on_message(msg: tuple, src: int)
+        +on_timeout(key)
+        +on_message(msg, src)
     }
-
-    Node <|-- ByzantineBase : kế thừa trực tiếp
-    ByzantineBase <|-- Silent : Proposer sập / im lặng (T6)
-    ByzantineBase <|-- EquivocateVoter : Bỏ phiếu 2 mặt (T7)
-    ByzantineBase <|-- EquivocateProposer : Đề xuất 2 khối mâu thuẫn (T7)
-    ByzantineBase <|-- InvalidBlock : Khối lỗi chữ ký/root/state (T3)
-    ByzantineBase <|-- Replay : Phát lại thông điệp (T2)
-    ByzantineBase <|-- ForkCoalition : Tấn công liên minh ranh giới Quorum
-    ForkCoalition o-- Coalition : điều phối phân vùng
+    class Coalition {
+        +tuple left
+        +tuple right
+        +tuple blocks
+        +__init__(left, right)
+    }
+    Node <|-- ByzantineBase
+    ByzantineBase <|-- Silent
+    ByzantineBase <|-- EquivocateVoter
+    ByzantineBase <|-- EquivocateProposer
+    ByzantineBase <|-- InvalidBlock
+    ByzantineBase <|-- Replay
+    ByzantineBase <|-- ForkCoalition
+    ForkCoalition "0..*" --> "1" Coalition : shared attack plan
+    Coalition --> "0..2" Block : blocks
+    class Block
 ```
 
-### Các quy tắc Tendermint được hiện thực trong `Node`:
-1. **Rule 1 & 2 (Không ký 2 phiếu)**: `signed[(h, r, kind)]` đảm bảo mỗi validator chỉ ký duy nhất 1 lần cho mỗi giai đoạn.
-2. **Rule 3 (Thẩm định khối toàn diện)**: Hàm `_check(b)` kiểm tra chữ ký proposer, hash khối cha `b.header.parent == self.last_hash()`, Merkle root `tx_root`, và tính hợp lệ của mọi transaction.
-3. **Rule 4 (Khóa khối - Lock Rule)**: Khi quan sát thấy $\ge Q$ phiếu `PREVOTE` cho một block $B \neq \text{NIL}$, node lập tức khóa vào block đó (`self.locked = (B, round)`).
-4. **Rule 5 (Mở khóa / Đổi mục tiêu - Unlock Rule)**: Node bị khóa ở block $A$ chỉ được phép prevote cho block $B \neq A$ nếu thấy Polka ($\ge Q$ prevote cho $B$) ở một vòng `pol_round > self.locked[1]`.
-5. **Rule 6 (Đúng ngữ cảnh)**: Loại bỏ các thông điệp ngoài cửa sổ trượt `in_window(h, r)` hoặc sai `chain_id`.
-6. **Rule 7 (Chống đếm 2 lần & Phát hiện Equivocation)**: Bỏ qua phiếu bầu lặp lại từ cùng một validator; ghi nhận log `EQUIVOCATION` nếu nhận được 2 phiếu mâu thuẫn trong cùng slot.
+## 5. Mạng mô phỏng, thực thi và điểm vào chương trình
 
----
+Nguồn: `Workspace/src/sim.py`, `execution.py`, `main.py`, `configuration.py`, `identities.py`, `validation.py`.
 
-## 3. SƠ ĐỒ NETWORK SIMULATION & EXECUTION (`src/sim.py`, `src/execution.py`)
+Các hộp mang stereotype `module` biểu diễn hàm cấp module để làm rõ phụ thuộc; chúng không phải lớp Python. Các sự kiện nằm trong list/heap `Net.q`, không có lớp Event riêng. Net gọi các hook của Node, còn Node gọi API gửi tin và timeout của Net.
 
-Cụm mô phỏng mạng biến cố rời rạc (DES) điều phối thời gian ảo, mô phỏng mạng bán đồng bộ (GST, rớt gói, trễ tin, đảo thứ tự, DoS Rate Limiting), kết hợp với Máy trạng thái ứng dụng Key-Value Copy-on-Write.
+File riêng: [05-network-execution.mmd](diagrams/05-network-execution.mmd).
 
 ```mermaid
 classDiagram
     direction TB
-
+    class MainModule {
+        <<module>>
+        +run_sim(cfg) Net
+        +main()
+    }
+    class ConfigurationModule {
+        <<module>>
+        +validate_config(cfg) dict
+    }
+    class IdentitiesModule {
+        <<module>>
+        +identity_keys(cfg) tuple
+    }
+    class ValidationModule {
+        <<module>>
+        +check_safety(nodes)
+        +check_completion(nodes, heights)
+        +snapshot(nodes)
+    }
+    class ByzantineModule {
+        <<module>>
+        +make_node(behavior, idx, ctx, kp) Node
+    }
     class Net {
         +Random rng
         +int n
         +int delta
         +int gst
-        +int pre_gst_max_delay
-        +float pre_gst_drop_probability
-        +float duplicate_probability
-        +float pre_gst_reorder_probability
-        +dict rate_limit
-        +dict peer_block
         +list peers
         +dict link_delays
         +list q
@@ -311,195 +396,134 @@ classDiagram
         +int now
         +list nodes
         +list logs
-        +dict block_heights
         +dict send_times
+        +dict peer_send_times
         +dict receive_times
         +dict blocked_peers
-        +__init__(cfg: dict)
-        +log(node: str, ev: str, **kw)
-        +_node_name(idx: int) str
-        +push(t: int, kind: str, *args)
-        +_message_height(msg: tuple) int
-        +broadcast(src: int, msg: tuple)
-        +send(src: int, dst: int, msg: tuple)
-        +_reserve_send_time(src: int, dst: int) int
-        +_transmit(src: int, dst: int, msg: tuple)
-        +_delivery_delay(src: int, dst: int, before_gst: bool) int
-        +_receive(src: int, dst: int, msg: tuple)
-        +set_timeout(idx: int, delay: int, key: tuple)
-        +run(t_end: int)
+        +__init__(cfg)
+        +log(node, ev)
+        +push(t, kind, args)
+        +broadcast(src, msg)
+        +send(src, dst, msg)
+        +set_timeout(idx, delay, key)
+        +run(t_end)
     }
-
+    class Node {
+        +State state
+        +start()
+        +on_message(msg, src)
+        +on_timeout(key)
+    }
     class State {
         +dict data
         +dict nonces
-        +__init__()
         +copy() State
         +hash() bytes
     }
-
-    class Executor {
-        <<module execution.py>>
-        +apply_tx(state: State, tx: Tx, chain_id: str, acct_pks: dict) str
-        +apply_txs(state: State, txs: tuple, chain_id: str, acct_pks: dict) tuple
+    class ExecutionModule {
+        <<module>>
+        +valid_tx_fields(tx) bool
+        +apply_tx(state, tx, chain_id, acct_pks)
+        +apply_txs(state, txs, chain_id, acct_pks) tuple
     }
-
-    Net o-- Node : quản lý danh sách validator (n nodes)
-    Node --> Net : phát thông điệp và lập lịch timeout
-    Node *-- State : sở hữu máy trạng thái ứng dụng
-    Node ..> Executor : thực thi kiểm tra block (apply_txs)
-    Executor ..> State : cập nhật data & nonces (Copy-on-Write)
+    class CommonModule {
+        <<module>>
+        +encode(o) bytes
+        +H(data) bytes
+        +sign(kp, domain, body) bytes
+        +verify(pk, domain, body, sig) bool
+        +tx_root(txs) bytes
+    }
+    MainModule ..> ConfigurationModule : validates config
+    MainModule ..> IdentitiesModule : loads keys
+    MainModule ..> ByzantineModule : creates configured nodes
+    MainModule ..> Node : creates honest nodes
+    MainModule ..> Net : creates and runs
+    MainModule ..> ValidationModule : CLI result checks
+    Net "1" o-- "0..*" Node : nodes and event dispatch
+    Node --> "1" Net : transport and timeouts
+    Node *-- "1" State : application state
+    Node ..> ExecutionModule : validates and executes
+    Node ..> CommonModule : signs and verifies
+    ExecutionModule ..> State : copies and updates
+    ExecutionModule ..> CommonModule : validates signatures
+    State ..> CommonModule : hashes canonical state
 ```
 
-### Đặc tính nổi bật của Tầng Mô phỏng & Thực thi:
-- **Đồng hồ ảo (`now`) & Priority Queue (`heapq`)**: Mạng vận hành bằng biến cố rời rạc không dùng `sleep()`, đảm bảo mô phỏng siêu nhanh và tất định 100% (T8).
-- **Mô hình Bán đồng bộ (Partial Synchrony)**:
-  - Trước $GST$: Rớt gói ngẫu nhiên (`pre_gst_drop_probability`), trễ lớn (`pre_gst_max_delay`), đảo thứ tự tin (`pre_gst_reorder_probability`).
-  - Sau $GST$: Giao vận tin cậy với cận trễ cố định $\Delta$ (`delta`).
-- **Phòng vệ DoS (Mục 6 đề bài)**:
-  - `Outbound Rate Limiting`: Cửa sổ trượt hoãn gửi các gói vượt định mức `max_messages` qua sự kiện `SEND_READY`.
-  - `Inbound Peer Blocking`: Chặn các peer spam dồn dập trong thời gian `duration`, tự động `UNBLOCK` sau đó.
-- **Thực thi Nguyên tử (Atomic Execution)**: Hàm `apply_txs` sử dụng `state.copy()`. Bất kỳ lỗi nonce (`bad_nonce`), chữ ký (`bad_tx_sig`), hoặc phân quyền (`not_owner`) đều hủy toàn bộ thay đổi.
+## 6. Các lớp hỗ trợ kiểm thử end-to-end
 
----
+Nguồn: `Workspace/tests/e2e/test_sync_catchup.py`, `test_t3_invalid_signatures.py`, `test_quorum_boundary.py`.
 
-## 4. SƠ ĐỒ KIẾN TRÚC TỔNG THỂ HỆ THỐNG 5 LỚP (FULL ARCHITECTURE)
+Sơ đồ minh họa các lớp test và lớp mạng chèn lỗi thực tế, không phải danh sách đầy đủ mọi test case. Hai test class dùng mock.patch để thay Net trong `src.main` rồi gọi hàm `run_sim()`. PartitionNet được runner thí nghiệm quorum khởi tạo riêng. Assertion nằm trong test method hoặc các hàm hỗ trợ; không có lớp Assertion/Scenario riêng.
 
-Sơ đồ thể hiện bức tranh toàn cảnh và mối quan hệ phụ thuộc giữa 5 tầng module:
+File riêng: [06-e2e-testing.mmd](diagrams/06-e2e-testing.mmd).
 
 ```mermaid
 classDiagram
     direction TB
-
-    %% Tier 1: Điều phối & Runner
-    namespace Tier1_Runner {
-        class MainCLI {
-            <<module main.py>>
-            +run_sim(cfg: dict) Net
-            +check_safety(nodes: list)
-        }
+    class TestCase {
+        <<external>>
+        +assertEqual(first, second)
+        +assertTrue(expr)
+        +assertNotIn(member, container)
     }
-
-    %% Tier 2: Mạng mô phỏng biến cố
-    namespace Tier2_Network_DES {
-        class Net {
-            +int now
-            +list q
-            +int delta
-            +int gst
-            +push(t, kind, *args)
-            +broadcast(src, msg)
-            +send(src, dst, msg)
-            +run(t_end)
-        }
+    class TestSyncCatchUpNetwork {
+        +test_isolated_node_catches_up()
+        +test_normal_run_never_asks()
     }
-
-    %% Tier 3: Cỗ máy Đồng thuận BFT
-    namespace Tier3_Consensus_Engine {
-        class Node {
-            +int height
-            +int round
-            +State state
-            +list ledger
-            +on_header(hd, src)
-            +on_body(payload)
-            +on_vote(v)
-            +on_timeout(key)
-            +finalize(b, cert)
-        }
-        class ByzantineBase {
-            +bool is_byzantine
-            +send_to(dst, msg)
-            +send_vote(vote, dsts)
-            +send_proposal(block, dsts)
-        }
+    class TestT3EndToEnd {
+        +test_rejected_and_logged_and_chain_continues()
     }
-
-    %% Tier 4: Máy trạng thái ứng dụng
-    namespace Tier4_State_Execution {
-        class State {
-            +dict data
-            +dict nonces
-            +copy() State
-            +hash() bytes
-        }
-        class Executor {
-            <<module execution.py>>
-            +apply_tx(state, tx, chain_id, acct_pks)
-            +apply_txs(state, txs, chain_id, acct_pks)
-        }
+    class Net {
+        +list nodes
+        +list logs
+        +run(t_end)
     }
-
-    %% Tier 5: Mật mã & Dữ liệu
-    namespace Tier5_Crypto_Models {
-        class Block {
-            +Header header
-            +tuple txs
-            +hash() bytes
-        }
-        class Header {
-            +int height
-            +int round
-            +bytes state_hash
-            +bytes tx_root
-            +bytes sig
-        }
-        class Vote {
-            +str kind
-            +int height
-            +int round
-            +bytes block_hash
-            +bytes sig
-        }
-        class Tx {
-            +str sender
-            +int nonce
-            +str key
-            +str value
-            +bytes sig
-        }
-        class CommitCertificate {
-            +int height
-            +int round
-            +bytes block_hash
-            +dict signatures
-        }
-        class KeyPair {
-            +Ed25519PrivateKey sk
-            +bytes pk
-        }
+    class IsolateNet {
+        +int ISOLATED
+        +int GST
+        +_transmit(src, dst, msg)
     }
-
-    %% Mối liên kết giữa các tầng
-    MainCLI ..> Net : khởi tạo & điều phối
-    MainCLI ..> Node : khởi tạo n validators
-    Net o-- Node : chứa các validator node
-    Node --> Net : gọi send / broadcast / push
-    Node <|-- ByzantineBase : mở rộng hành vi lỗi
-    Node *-- State : duy trì trạng thái KV
-    Node ..> Executor : áp dụng giao dịch
-    Executor ..> State : cập nhật bản sao trạng thái
-    Node o-- Block : lưu trữ trong ledger
-    Node o-- CommitCertificate : lưu trữ theo height
-    Node ..> Vote : ký và xử lý phiếu bầu
-    Node ..> KeyPair : định danh mật mã Ed25519
-    Block *-- Header : chứa tiêu đề
-    Block o-- Tx : chứa giao dịch
-    CommitCertificate ..> Block : bằng chứng tối hậu (2f+1 precommits)
+    class InjectNet {
+        +list bad
+        +Block fake_block
+        +Tx fake_tx
+        +run(t_end)
+    }
+    class PartitionNet {
+        +int gst
+        +dict side
+        +__init__(cfg, side)
+        +_transmit(src, dst, msg)
+    }
+    class MainModule {
+        <<module>>
+        +run_sim(cfg) Net
+    }
+    class QuorumExperimentModule {
+        <<module>>
+        +run_experiment(n, q, right, f, seed, gst, network)
+    }
+    TestCase <|-- TestSyncCatchUpNetwork
+    TestCase <|-- TestT3EndToEnd
+    Net <|-- IsolateNet
+    Net <|-- InjectNet
+    Net <|-- PartitionNet
+    TestSyncCatchUpNetwork ..> MainModule : invokes run_sim
+    TestSyncCatchUpNetwork ..> IsolateNet : patches network class
+    TestT3EndToEnd ..> MainModule : invokes run_sim
+    TestT3EndToEnd ..> InjectNet : patches network class
+    QuorumExperimentModule ..> PartitionNet : creates partition network
 ```
 
----
+## Các chi tiết cần giữ đúng khi viết báo cáo
 
-## 5. BẢNG ĐỐI CHIẾU THIẾT KẾ ĐỐI VỚI 8 KỊCH BẢN KIỂM THỬ T1 - T8
-
-| Mã Test | Kịch Bản Kiểm Thử | Các Lớp & Phương Thức Chính Tham Gia | Cơ Chế Bảo Đảm Tính Đúng Đắn |
-| :---: | :--- | :--- | :--- |
-| **T1** | **Normal Run (No Faults)** | `Node.start_height()`, `Node.propose()`, `Node.on_vote()`, `Node.finalize()` | 8 node hoàn thành 5 block tại Round 0; cùng `state_hash` cuối cùng. |
-| **T2** | **Duplicate & Reordered** | `Net._transmit()`, `Node.on_vote()`, `Node.seen_tx_hashes`, `byzantine.Replay` | **Rule 7** bỏ qua phiếu lặp lại; mempool deduplicate $O(1)$; không đếm 2 lần. |
-| **T3** | **Invalid Signatures** | `common.verify()`, `byzantine.InvalidBlock`, `execution.apply_tx()` | Ghi log `bad_header_sig`, `bad_vote_sig`, `bad_tx_sig`; từ chối ngay ở cổng vào. |
-| **T4** | **Replay Tx Nonce** | `execution.apply_tx()`, `Node.mempool`, `Node.seen_tx_hashes` | Chốt chặn `tx.nonce == current_nonce + 1`; từ chối phát lại với mã `bad_nonce`. |
-| **T5** | **Pre-GST Drops & Delays** | `Net.run()`, `Net._delivery_delay()`, `Node.on_timeout()`, `Node.locked` | **Rule 4 & 5 (Lock & Unlock)** giữ vững Safety: không bao giờ phân nhánh khối. |
-| **T6** | **Silent Proposer** | `byzantine.Silent`, `Node.on_timeout("PROPOSE")`, `Node.start_round()` | Hết giờ chờ đề xuất, validator bỏ phiếu `NIL`, tăng round và chốt khối ở Round 1. |
-| **T7** | **Byzantine Equivocation** | `byzantine.EquivocateVoter`, `byzantine.EquivocateProposer`, `Node.Q` | Định lý giao điểm Quorum ($2f + 1$ với $n \ge 3f + 1$) ngăn chặn 2 khối chốt ở cùng height. |
-| **T8** | **Determinism** | `Net.rng`, `Net.push()`, `common.encode()`, `State.hash()` | Cùng seed PRNG và cơ chế mã hóa tất định tạo log và state hash trùng khớp từng byte. |
+- `tx_root(txs)` là SHA-256 của danh sách `[tx.body(), tx.sig]` đã mã hóa, theo đúng thứ tự giao dịch; implementation hiện tại không dựng cây Merkle.
+- `Block.hash()` băm `[height, parent, state_hash, tx_root]`; round, pol_round và proposer không thuộc định danh nội dung block.
+- `CommitCertificate.signatures` lưu ánh xạ tên validator → chữ ký PRECOMMIT, không chứa danh sách đối tượng Vote. POLKA dùng các phiếu PREVOTE, là cơ chế khác.
+- `Node.Q = 2 * f + 1`. Runner chuẩn kiểm tra `n = 3f + 1`, `n >= 8`; thí nghiệm quorum có runner riêng cho điều kiện ngoài giả định.
+- `KeyPair` giữ khóa ký; các hàm encode/hash/sign/verify là hàm trong `common.py`. Không có lớp CryptoUtils thật.
+- `State` có data/nonces và copy/hash. Các hàm `apply_tx`, `apply_txs` thuộc module `execution.py`, không phải phương thức của State hay lớp Executor.
+- Các mô hình dữ liệu có thể được dùng lại giữa các block/node; vì thế quan hệ từ Block tới Header/Tx dùng association, không áp đặt quyền sở hữu độc quyền.
+- File `blockchain.py` ở root là khung PoW với các hàm chưa triển khai, không nằm trong luồng Tendermint do `run_sim()` chạy, nên không đưa vào các sơ đồ hệ thống này.
 
