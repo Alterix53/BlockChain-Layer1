@@ -6,7 +6,7 @@ Mô phỏng blockchain BFT trên mạng không tin cậy, với giao dịch có 
 
 **Python 3.12+ · Ed25519 · SHA-256 · Tendermint-style BFT**
 
-[Phần nộp bài](Lab01_23127005_23127028_23127183_23127536_23127042/) · [Hướng dẫn chi tiết](Lab01_23127005_23127028_23127183_23127536_23127042/README.md) · [Báo cáo PDF](Lab01_23127005_23127028_23127183_23127536_23127042/REPORT.pdf) · [Tài liệu](Document/)
+[Phần nộp bài](https://github.com/Alterix53/BlockChain-Layer1/tree/main/Lab01_23127005_23127028_23127183_23127536_23127042/) · [Hướng dẫn chi tiết](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Lab01_23127005_23127028_23127183_23127536_23127042/README.md) · [Báo cáo PDF](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Lab01_23127005_23127028_23127183_23127536_23127042/REPORT.pdf) · [Tài liệu](https://github.com/Alterix53/BlockChain-Layer1/tree/main/Document/)
 
 </div>
 
@@ -25,10 +25,12 @@ Cấu hình mặc định: **10 validator · f = 3 · quorum = 7 · seed = 42 ·
 
 ## Chạy nhanh
 
-Yêu cầu Python 3.12+ và pip. Từ **gốc repository**, chạy:
+Yêu cầu Python 3.12+ và pip. Từ **gốc repository hoặc thư mục nộp bài**, chạy:
 
 ```powershell
-cd Lab01_23127005_23127028_23127183_23127536_23127042
+if (-not (Test-Path -LiteralPath "src/main.py")) {
+    Set-Location -LiteralPath "Lab01_23127005_23127028_23127183_23127536_23127042"
+}
 python -m pip install -r requirements.txt
 python -X utf8 -B -m src.main --config config/default.json --twice
 ```
@@ -47,15 +49,15 @@ python -X utf8 -B -m tests -v
 python -X utf8 -B -m unittest discover -s tests/e2e -t . -v
 ```
 
-Runner `python -m tests` tạo thư mục `logs/tests/run-<unique>/`; `summary.json` ánh xạ tên test tới kết quả và file log. Xem [hướng dẫn kiểm thử](Lab01_23127005_23127028_23127183_23127536_23127042/tests/README.md) và [cách chạy riêng T1–T8](Document/Report/E2E_RESULTS.md).
+Runner `python -m tests` tạo thư mục `logs/tests/run-<unique>/`; `summary.json` ánh xạ tên test tới kết quả và file log. Xem [hướng dẫn kiểm thử](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Lab01_23127005_23127028_23127183_23127536_23127042/tests/README.md) và [cách chạy riêng T1–T8](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Document/Report/E2E_RESULTS.md).
 
 ### Kết quả đã xác minh · 06/11/2026
 
 | Phạm vi | Kết quả | Thời gian | Bằng chứng |
 | :--- | :---: | ---: | :--- |
-| Toàn bộ bộ kiểm thử — lần kiểm tra cuối | **150/150 PASS** | 28,722 giây | [Console](Document/reviews/2026-11-06-final-validation-console.txt) |
-| Toàn bộ nhóm E2E | **37/37 PASS** | 20,718 giây | [Console](Lab01_23127005_23127028_23127183_23127536_23127042/logs/e2e-console.txt) |
-| Riêng tám kịch bản T1–T8 | **20/20 PASS** | 9,820 giây | [Console](Lab01_23127005_23127028_23127183_23127536_23127042/logs/t1-t8-console.txt) |
+| Toàn bộ bộ kiểm thử — lần kiểm tra cuối | **150/150 PASS** | 28,722 giây | [Console](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Document/reviews/2026-11-06-final-validation-console.txt) |
+| Toàn bộ nhóm E2E | **37/37 PASS** | 20,718 giây | [Console](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Lab01_23127005_23127028_23127183_23127536_23127042/logs/e2e-console.txt) |
+| Riêng tám kịch bản T1–T8 | **20/20 PASS** | 9,820 giây | [Console](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Lab01_23127005_23127028_23127183_23127536_23127042/logs/t1-t8-console.txt) |
 
 Không có failure, error hoặc skip trong các lần chạy trên. T1–T8 là **tám nhóm kịch bản**, gồm tổng cộng 20 test method; các biến thể subtest không được tính riêng. Thời gian do `unittest` đo cho từng lần chạy, không phải thời gian mô phỏng. Đây là bằng chứng hồi quy, không phải chứng minh hình thức của giao thức.
 
@@ -75,7 +77,7 @@ Không có failure, error hoặc skip trong các lần chạy trên. T1–T8 là
 └── README.md              Giới thiệu repository
 ```
 
-> **Trạng thái báo cáo:** `REPORT.pdf` hiện là bản export cũ gồm 12 trang. Cần xuất lại từ [nguồn LaTeX](Document/Report/main.tex), đồng bộ nội dung mới và bảo đảm tổng PDF không quá 10 trang trước khi nộp cho giảng viên.
+> **Trạng thái báo cáo:** `REPORT.pdf` hiện là bản export cũ gồm 12 trang. Cần xuất lại từ [nguồn LaTeX](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Document/Report/main.tex), đồng bộ nội dung mới và bảo đảm tổng PDF không quá 10 trang trước khi nộp cho giảng viên.
 
 ## Thành viên
 
@@ -89,8 +91,8 @@ Không có failure, error hoặc skip trong các lần chạy trên. T1–T8 là
 
 ## Tài liệu và tham khảo
 
-- [Đề bài Lab 01](Document/Lab01.pdf) · [Slide môn học](Document/Lab01-presentation.pdf)
-- [Thiết kế và hiện thực](Document/IMPLEMENTATION.md) · [Sơ đồ lớp](Document/CLASS_DIAGRAMS.md) · [Luồng T1–T8](Document/SEQUENCE_DIAGRAMS_T1_T8.md)
+- [Đề bài Lab 01](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Document/Lab01.pdf) · [Slide môn học](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Document/Lab01-presentation.pdf)
+- [Thiết kế và hiện thực](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Document/IMPLEMENTATION.md) · [Sơ đồ lớp](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Document/CLASS_DIAGRAMS.md) · [Luồng T1–T8](https://github.com/Alterix53/BlockChain-Layer1/blob/main/Document/SEQUENCE_DIAGRAMS_T1_T8.md)
 - [The latest gossip on BFT consensus](https://arxiv.org/abs/1807.04938)
 - [The Byzantine Generals Problem](https://doi.org/10.1145/357172.357176)
 - [Ed25519 — RFC 8032](https://www.rfc-editor.org/rfc/rfc8032) · [PyCA Ed25519](https://cryptography.io/en/latest/hazmat/primitives/asymmetric/ed25519/) · [Python unittest](https://docs.python.org/3/library/unittest.html)
